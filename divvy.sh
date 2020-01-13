@@ -32,9 +32,6 @@ COMPOSE_FILE_KAFKA=docker-compose-kafka.yaml
 # two additional etcd/raft orderers
 COMPOSE_FILE_RAFT2=docker-compose-etcdraft2.yaml
 
-# certificate authorities compose file
-COMPOSE_FILE_CA=docker-compose-ca.yaml
-
 # use golang as the default language for chaincode
 LANGUAGE=golang
 
@@ -61,7 +58,6 @@ function printHelp() {
     echo "    -l <language> - the chaincode language: node (default) or golang"
     echo "    -o <consensus-type> - the consensus-type of the ordering service: solo (default) or etcdraft"
     echo "    -i <imagetag> - the tag to be used to launch the network (defaults to \"latest\")"
-    echo "    -a - launch certificate authorities (no certificate authorities are launched by default)"
     echo "    -n - do not deploy chaincode (abstore chaincode is deployed by default)"
     echo "    -v - verbose mode"
     echo "  divvy.sh -h (print this message)"
@@ -80,6 +76,24 @@ function printHelp() {
     echo "	divvy.sh generate"
     echo "	divvy.sh up"
     echo "	divvy.sh down"
+}
+
+# Ask user for confirmation to proceed
+function askProceed() {
+    read -p "Continue? [Y/n] " ans
+    case "$ans" in
+    y | Y | "")
+        echo "proceeding ..."
+        ;;
+    n | N)
+        echo "exiting..."
+        exit 1
+        ;;
+    *)
+        echo "invalid response"
+        askProceed
+        ;;
+    esac
 }
 
 # Do some basic sanity checking to make sure that the appropriate versions of fabric
@@ -106,28 +120,30 @@ function one_line_pem {
     echo "`awk 'NF {sub(/\\n/, ""); printf "%s\\\\\\\n",$0;}' $1`"
 }
 
-function json_ccp {
-    local PP=$(one_line_pem $5)
-    local CP=$(one_line_pem $6)
+function generate_json_ccp {
+    local PP=$(one_line_pem $4)
+    local CP=$(one_line_pem $5)
     sed -e "s/\${ORG}/$1/" \
-        -e "s/\${P0PORT}/$2/" \
-        -e "s/\${P1PORT}/$3/" \
-        -e "s/\${CAPORT}/$4/" \
+        -e "s/\${PEERPORT}/$2/" \
+        -e "s/\${CAPORT}/$3/" \
         -e "s#\${PEERPEM}#$PP#" \
         -e "s#\${CAPEM}#$CP#" \
         ./templates/ccp-template.json
 }
 
-function yaml_ccp {
-    local PP=$(one_line_pem $5)
-    local CP=$(one_line_pem $6)
+function generate_yaml_ccp {
+    local PP=$(one_line_pem $4)
+    local CP=$(one_line_pem $5)
     sed -e "s/\${ORG}/$1/" \
-        -e "s/\${P0PORT}/$2/" \
-        -e "s/\${P1PORT}/$3/" \
-        -e "s/\${CAPORT}/$4/" \
+        -e "s/\${PEERPORT}/$2/" \
+        -e "s/\${CAPORT}/$3/" \
         -e "s#\${PEERPEM}#$PP#" \
         -e "s#\${CAPEM}#$CP#" \
         ./templates/ccp-template.yaml | sed -e $'s/\\\\n/\\\n        /g'
+}
+
+function generate_ca_config {
+    sed -e "s/\${ORG}/$1/g" ./templates/ca-config-template.yaml
 }
 
 # We will use the cryptogen tool to generate the cryptographic material (x509 certs)
@@ -161,8 +177,16 @@ function generateCerts() {
     echo "##### Generate certificates using cryptogen tool #########"
     echo "##########################################################"
 
+    if [ -d "ca.divvy.com/ca" ]; then
+        rm -Rf ca.divvy.com/ca
+    fi
+
     if [ -d "crypto-config" ]; then
         rm -Rf crypto-config
+    fi
+
+    if [ -d "org-config" ]; then
+        rm -Rf org-config
     fi
 
     set -x
@@ -179,32 +203,36 @@ function generateCerts() {
     echo
     echo "Generate Connection Profiles for Org1 and Org2"
 
-    mkdir -p ./connection-profiles
-
     # TODO: Remove hardcoding. Each Org should have its Connection Profile
     # generated dynamically.
     ORG=1
-    P0PORT=7051
-    P1PORT=8051
+    PEERPORT=7051
     CAPORT=7054
     PEERPEM=crypto-config/peerOrganizations/org1.divvy.com/tlsca/tlsca.org1.divvy.com-cert.pem
     CAPEM=crypto-config/peerOrganizations/org1.divvy.com/ca/ca.org1.divvy.com-cert.pem
-    echo "$(json_ccp $ORG $P0PORT $P1PORT $CAPORT $PEERPEM $CAPEM)" > ./connection-profiles/connection-org1.json
-    echo "$(yaml_ccp $ORG $P0PORT $P1PORT $CAPORT $PEERPEM $CAPEM)" > ./connection-profiles/connection-org1.yaml
+
+    mkdir -p ./org-config/org${ORG}
+    mkdir -p ./ca.divvy.com/ca/org${ORG}
+
+    echo "$(generate_json_ccp $ORG $PEERPORT $CAPORT $PEERPEM $CAPEM)" > ./org-config/org${ORG}/connection-profile.json
+    echo "$(generate_yaml_ccp $ORG $PEERPORT $CAPORT $PEERPEM $CAPEM)" > ./org-config/org${ORG}/connection-profile.yaml
+    echo "$(generate_ca_config $ORG)" > ./ca.divvy.com/ca/org${ORG}/ca-config.yaml
 
     ORG=2
-    P0PORT=9051
-    P1PORT=10051
+    PEERPORT=9051
     CAPORT=7054
     PEERPEM=crypto-config/peerOrganizations/org2.divvy.com/tlsca/tlsca.org2.divvy.com-cert.pem
     CAPEM=crypto-config/peerOrganizations/org2.divvy.com/ca/ca.org2.divvy.com-cert.pem
-    echo "$(json_ccp $ORG $P0PORT $P1PORT $CAPORT $PEERPEM $CAPEM)" > ./connection-profiles/connection-org2.json
-    echo "$(yaml_ccp $ORG $P0PORT $P1PORT $CAPORT $PEERPEM $CAPEM)" > ./connection-profiles/connection-org2.yaml
+
+    mkdir -p ./org-config/org${ORG}
+    mkdir -p ./ca.divvy.com/ca/org${ORG}
+
+    echo "$(generate_json_ccp $ORG $PEERPORT $CAPORT $PEERPEM $CAPEM)" > ./org-config/org${ORG}/connection-profile.json
+    echo "$(generate_yaml_ccp $ORG $PEERPORT $CAPORT $PEERPEM $CAPEM)" > ./org-config/org${ORG}/connection-profile.yaml
+    echo "$(generate_ca_config $ORG)" > ./ca.divvy.com/ca/org${ORG}/ca-config.yaml
 }
 
-# Using docker-compose-e2e-template.yaml, replace constants with private key file names
-# generated by the cryptogen tool and output a docker-compose.yaml specific to this
-# configuration
+# Replace constants with private key file names generated by the cryptogen tool.
 function replacePrivateKey() {
     # sed on macOS does not support -i flag with a null extension. We will use
     # 't' for our back-up's extension and delete it at the end of the function
@@ -216,28 +244,20 @@ function replacePrivateKey() {
         OPTS="-i"
     fi
 
-    # Copy the template to the file that will be modified to add the private key
-    cp docker-compose-e2e-template.yaml docker-compose-e2e.yaml
-
     # The next steps will replace the template's contents with the
     # actual values of the private key file names for the two CAs.
     CURRENT_DIR=$PWD
 
+    # TODO: Replace hardcoding.
     cd crypto-config/peerOrganizations/org1.divvy.com/ca/
-
     PRIV_KEY=$(ls *_sk)
-
     cd "$CURRENT_DIR"
-
-    sed $OPTS "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    sed $OPTS "s/\${PRIV_KEY}/${PRIV_KEY}/g" ca.divvy.com/ca/org1/ca-config.yaml
 
     cd crypto-config/peerOrganizations/org2.divvy.com/ca/
-
     PRIV_KEY=$(ls *_sk)
-
     cd "$CURRENT_DIR"
-
-    sed $OPTS "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
+    sed $OPTS "s/\${PRIV_KEY}/${PRIV_KEY}/g" ca.divvy.com/ca/org2/ca-config.yaml
 
     # If macOS, remove the temporary backup of the docker-compose file
     if [ "$ARCH" == "Darwin" ]; then
@@ -383,12 +403,6 @@ function networkUp() {
 
   COMPOSE_FILES="-f ${COMPOSE_FILE}"
 
-  if [ "${CERTIFICATE_AUTHORITIES}" == "true" ]; then
-    COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_CA}"
-    export BYFN_CA1_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org1.divvy.com/ca && ls *_sk)
-    export BYFN_CA2_PRIVATE_KEY=$(cd crypto-config/peerOrganizations/org2.divvy.com/ca && ls *_sk)
-  fi
-
   if [ "${CONSENSUS_TYPE}" == "etcdraft" ]; then
     COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_RAFT2}"
   fi
@@ -455,7 +469,7 @@ function removeUnwantedImages() {
 function networkDown() {
   # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
   # stop kafka and zookeeper containers in case we're running with kafka consensus-type
-  docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_KAFKA -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_CA -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
+  docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_KAFKA -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
 
   # Don't remove the generated artifacts -- note, the ledgers are always removed
   if [ "$MODE" != "restart" ]; then
@@ -524,9 +538,6 @@ while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
   o)
     CONSENSUS_TYPE=$OPTARG
     ;;
-  a)
-    CERTIFICATE_AUTHORITIES=true
-    ;;
   n)
     NO_CHAINCODE=true
     ;;
@@ -554,7 +565,7 @@ elif [ "${MODE}" == "down" ]; then ## Clear the network
   networkDown
 elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
   generateCerts
-#   replacePrivateKey
+  replacePrivateKey
 #   generateChannelArtifacts
 elif [ "${MODE}" == "restart" ]; then ## Restart the network
   networkDown

@@ -11,6 +11,7 @@ OrdererOrgs:
     # ---------------------------------------------------------------------------
     # "Specs" - See PeerOrgs below for complete description
     # ---------------------------------------------------------------------------
+    # Only the first hostname is used in a Solo scenario.
     Specs:
       - Hostname: orderer
       - Hostname: orderer2
