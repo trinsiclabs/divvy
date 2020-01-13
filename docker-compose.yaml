@@ -19,24 +19,23 @@ services:
     networks:
       - divvy
 
-  # orderer.divvy.com:
-  #   container_name: orderer.divvy.com
-  #   image: hyperledger/fabric-orderer
-  #   working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
-  #   environment:
-  #     - FABRIC_LOGGING_SPEC=info
-  #     - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-  #     - ORDERER_GENERAL_GENESISMETHOD=file
-  #     - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
-  #     - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-  #     - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-  #   ports:
-  #     - 7050:7050
-  #   volumes:
-  #     - ./config/:/etc/hyperledger/configtx
-  #     - ./crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
-  #     - ./crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
-  #   command: orderer
-  #   networks:
-  #     - divvy
+  orderer.divvy.com:
+    container_name: orderer.divvy.com
+    image: hyperledger/fabric-orderer
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
+    environment:
+      - FABRIC_LOGGING_SPEC=info
+      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
+      # Additional configuration in ./config/orderer.yaml
+    ports:
+      - 7050:7050
+    volumes:
+      - ./config/:/etc/hyperledger/configtx
+      - ./crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/:/etc/hyperledger/msp/orderer
+      - ./crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/:/etc/hyperledger/msp/peerOrg1
+    command: orderer
+    networks:
+      - divvy
 

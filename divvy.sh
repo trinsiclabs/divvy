@@ -150,7 +150,7 @@ function generate_ca_config {
 # for our various network entities. The certificates are based on a standard PKI
 # implementation where validation is achieved by reaching a common trust anchor.
 #
-# Cryptogen consumes a file - ``crypto-config.yaml`` - that contains the network
+# Cryptogen consumes a file - ``config/crypto/config.yaml`` - that contains the network
 # topology and allows us to generate a library of certificates for both the
 # Organizations and the components that belong to those Organizations. Each
 # Organization is provisioned a unique root certificate (``ca-cert``), that binds
@@ -191,7 +191,7 @@ function generateCerts() {
 
     set -x
     # TODO: Seperate Orgs into seperate files to they can be added dynamically.
-    cryptogen generate --config=./crypto-config.yaml
+    cryptogen generate --config=./config/crypto/config.yaml
     res=$?
     set +x
 
@@ -323,8 +323,6 @@ function generateChannelArtifacts() {
 
   if [ "$CONSENSUS_TYPE" == "solo" ]; then
     configtxgen -profile TwoOrgsOrdererGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  elif [ "$CONSENSUS_TYPE" == "kafka" ]; then
-    configtxgen -profile SampleDevModeKafka -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
   elif [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
     configtxgen -profile SampleMultiNodeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
   else
@@ -417,12 +415,6 @@ function networkUp() {
   if [ $? -ne 0 ]; then
     echo "ERROR !!!! Unable to start network"
     exit 1
-  fi
-
-  if [ "$CONSENSUS_TYPE" == "kafka" ]; then
-    sleep 1
-    echo "Sleeping 10s to allow $CONSENSUS_TYPE cluster to complete booting"
-    sleep 9
   fi
 
   if [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
