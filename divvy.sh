@@ -11,8 +11,8 @@ CLI_TIMEOUT=10
 # default for delay between commands
 CLI_DELAY=3
 
-# system channel name defaults to "divvy-sys-channel"
-SYS_CHANNEL="divvy-sys-channel"
+# system channel name defaults to "sys-channel"
+SYS_CHANNEL="sys-channel"
 
 # channel name defaults to "divvy"
 CHANNEL_NAME="divvy"
@@ -150,7 +150,7 @@ function generate_ca_config {
 # for our various network entities. The certificates are based on a standard PKI
 # implementation where validation is achieved by reaching a common trust anchor.
 #
-# Cryptogen consumes a file - ``config/crypto/config.yaml`` - that contains the network
+# Cryptogen consumes a file - ``config/crypto.yaml`` - that contains the network
 # topology and allows us to generate a library of certificates for both the
 # Organizations and the components that belong to those Organizations. Each
 # Organization is provisioned a unique root certificate (``ca-cert``), that binds
@@ -191,7 +191,7 @@ function generateCerts() {
 
     set -x
     # TODO: Seperate Orgs into seperate files to they can be added dynamically.
-    cryptogen generate --config=./config/crypto/config.yaml
+    cryptogen generate --config=./config/crypto.yaml
     res=$?
     set +x
 
@@ -258,11 +258,6 @@ function replacePrivateKey() {
     PRIV_KEY=$(ls *_sk)
     cd "$CURRENT_DIR"
     sed $OPTS "s/\${PRIV_KEY}/${PRIV_KEY}/g" ca.divvy.com/ca/org2/ca-config.yaml
-
-    # If macOS, remove the temporary backup of the docker-compose file
-    if [ "$ARCH" == "Darwin" ]; then
-        rm docker-compose-e2e.yamlt
-    fi
 }
 
 # The `configtxgen tool is used to create four artifacts: orderer **bootstrap
@@ -276,7 +271,7 @@ function replacePrivateKey() {
 #
 # Configtxgen consumes a file - ``configtx.yaml`` - that contains the definitions
 # for the sample network. There are three members - one Orderer Org (``OrdererOrg``)
-# and two Peer Orgs (``Org1`` & ``Org2``) each managing and maintaining two peer nodes.
+# and two Peer Orgs (``Org1`` & ``Org2``) each managing and maintaining one peer node.
 # This file also specifies a consortium - ``SampleConsortium`` - consisting of our
 # two Peer Orgs. Pay specific attention to the "Profiles" section at the top of
 # this file. You will notice that we have two unique headers. One for the orderer genesis
@@ -284,7 +279,7 @@ function replacePrivateKey() {
 # These headers are important, as we will pass them in as arguments when we create
 # our artifacts. This file also contains two additional specifications that are worth
 # noting. Firstly, we specify the anchor peers for each Peer Org
-# (``peer0.org1.divvy.com`` & ``peer0.org2.divvy.com``). Secondly, we point to
+# (``peer.org1.divvy.com`` & ``peer.org2.divvy.com``). Secondly, we point to
 # the location of the MSP directory for each member, in turn allowing us to store the
 # root certificates for each Org in the orderer genesis block. This is a critical
 # concept. Now any network entity communicating with the ordering service can have
@@ -304,88 +299,94 @@ function replacePrivateKey() {
 # Generate orderer genesis block, channel configuration transaction and
 # anchor peer update transactions
 function generateChannelArtifacts() {
-  which configtxgen
+    which configtxgen
 
-  if [ "$?" -ne 0 ]; then
-    echo "configtxgen tool not found. exiting"
-    exit 1
-  fi
+    if [ "$?" -ne 0 ]; then
+        echo "configtxgen tool not found. exiting"
+        exit 1
+    fi
 
-  echo "##########################################################"
-  echo "#########  Generating Orderer Genesis block ##############"
-  echo "##########################################################"
+    echo "##########################################################"
+    echo "#########  Generating Orderer Genesis block ##############"
+    echo "##########################################################"
 
-  # Note: For some unknown reason (at least for now) the block file can't be
-  # named orderer.genesis.block or the orderer will fail to launch!
-  echo "CONSENSUS_TYPE="$CONSENSUS_TYPE
+    if [ -d "channel-artifacts" ]; then
+        rm -Rf channel-artifacts
+    fi
 
-  set -x
+    mkdir channel-artifacts
 
-  if [ "$CONSENSUS_TYPE" == "solo" ]; then
-    configtxgen -profile TwoOrgsOrdererGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  elif [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
-    configtxgen -profile SampleMultiNodeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
-  else
+    # Note: For some unknown reason (at least for now) the block file can't be
+    # named orderer.genesis.block or the orderer will fail to launch!
+    echo "CONSENSUS_TYPE="$CONSENSUS_TYPE
+
+    set -x
+
+    if [ "$CONSENSUS_TYPE" == "solo" ]; then
+        configtxgen -configPath ./config -profile DivvyGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
+    elif [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
+        configtxgen -configPath ./config -profile SampleDevModeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
+    else
+        set +x
+        echo "unrecognized CONSESUS_TYPE='$CONSENSUS_TYPE'. exiting"
+        exit 1
+    fi
+
+    res=$?
     set +x
-    echo "unrecognized CONSESUS_TYPE='$CONSENSUS_TYPE'. exiting"
-    exit 1
-  fi
 
-  res=$?
-  set +x
+    if [ $res -ne 0 ]; then
+        echo "Failed to generate orderer genesis block..."
+        exit 1
+    fi
 
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate orderer genesis block..."
-    exit 1
-  fi
+    echo
+    echo "#################################################################"
+    echo "### Generating channel configuration transaction 'channel.tx' ###"
+    echo "#################################################################"
 
-  echo
-  echo "#################################################################"
-  echo "### Generating channel configuration transaction 'channel.tx' ###"
-  echo "#################################################################"
+    set -x
+    configtxgen -configPath ./config -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
+    res=$?
+    set +x
 
-  set -x
-  configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
-  res=$?
-  set +x
+    if [ $res -ne 0 ]; then
+        echo "Failed to generate channel configuration transaction..."
+        exit 1
+    fi
 
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate channel configuration transaction..."
-    exit 1
-  fi
+    echo
+    echo "#################################################################"
+    echo "#######    Generating anchor peer update for Org1MSP   ##########"
+    echo "#################################################################"
 
-  echo
-  echo "#################################################################"
-  echo "#######    Generating anchor peer update for Org1MSP   ##########"
-  echo "#################################################################"
+    set -x
+    configtxgen -configPath ./config -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
+    res=$?
+    set +x
 
-  set -x
-  configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
-  res=$?
-  set +x
+    if [ $res -ne 0 ]; then
+        echo "Failed to generate anchor peer update for Org1MSP..."
+        exit 1
+    fi
 
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for Org1MSP..."
-    exit 1
-  fi
+    echo
+    echo "#################################################################"
+    echo "#######    Generating anchor peer update for Org2MSP   ##########"
+    echo "#################################################################"
 
-  echo
-  echo "#################################################################"
-  echo "#######    Generating anchor peer update for Org2MSP   ##########"
-  echo "#################################################################"
+    set -x
+    configtxgen -configPath ./config -profile TwoOrgsChannel -outputAnchorPeersUpdate \
+        ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
+    res=$?
+    set +x
 
-  set -x
-  configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate \
-    ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
-  res=$?
-  set +x
+    if [ $res -ne 0 ]; then
+        echo "Failed to generate anchor peer update for Org2MSP..."
+        exit 1
+    fi
 
-  if [ $res -ne 0 ]; then
-    echo "Failed to generate anchor peer update for Org2MSP..."
-    exit 1
-  fi
-
-  echo
+    echo
 }
 
 # Generate the needed certificates, the genesis block and start the network.
@@ -488,63 +489,63 @@ shift
 
 # Determine whether starting, stopping, restarting, generating or upgrading
 if [ "$MODE" == "up" ]; then
-  EXPMODE="Starting"
+    EXPMODE="Starting"
 elif [ "$MODE" == "down" ]; then
-  EXPMODE="Stopping"
+    EXPMODE="Stopping"
 elif [ "$MODE" == "restart" ]; then
-  EXPMODE="Restarting"
+    EXPMODE="Restarting"
 elif [ "$MODE" == "generate" ]; then
-  EXPMODE="Generating certs and genesis block"
+    EXPMODE="Generating certs and genesis block"
 else
-  printHelp
-  exit 1
+    printHelp
+    exit 1
 fi
 
 while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
-  case "$opt" in
-  h | \?)
-    printHelp
-    exit 0
-    ;;
-  c)
-    CHANNEL_NAME=$OPTARG
-    ;;
-  t)
-    CLI_TIMEOUT=$OPTARG
-    ;;
-  d)
-    CLI_DELAY=$OPTARG
-    ;;
-  f)
-    COMPOSE_FILE=$OPTARG
-    ;;
-  s)
-    IF_COUCHDB=$OPTARG
-    ;;
-  l)
-    LANGUAGE=$OPTARG
-    ;;
-  i)
-    IMAGETAG=$(go env GOARCH)"-"$OPTARG
-    ;;
-  o)
-    CONSENSUS_TYPE=$OPTARG
-    ;;
-  n)
-    NO_CHAINCODE=true
-    ;;
-  v)
-    VERBOSE=true
-    ;;
-  esac
+    case "$opt" in
+    h | \?)
+        printHelp
+        exit 0
+        ;;
+    c)
+        CHANNEL_NAME=$OPTARG
+        ;;
+    t)
+        CLI_TIMEOUT=$OPTARG
+        ;;
+    d)
+        CLI_DELAY=$OPTARG
+        ;;
+    f)
+        COMPOSE_FILE=$OPTARG
+        ;;
+    s)
+        IF_COUCHDB=$OPTARG
+        ;;
+    l)
+        LANGUAGE=$OPTARG
+        ;;
+    i)
+        IMAGETAG=$(go env GOARCH)"-"$OPTARG
+        ;;
+    o)
+        CONSENSUS_TYPE=$OPTARG
+        ;;
+    n)
+        NO_CHAINCODE=true
+        ;;
+    v)
+        VERBOSE=true
+        ;;
+    esac
 done
 
 # Announce what was requested
 if [ "${IF_COUCHDB}" == "couchdb" ]; then
-  echo
-  echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds and using database '${IF_COUCHDB}'"
+    echo
+    echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds and using database '${IF_COUCHDB}'"
 else
-  echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds"
+    echo "${EXPMODE} for channel '${CHANNEL_NAME}' with CLI timeout of '${CLI_TIMEOUT}' seconds and CLI delay of '${CLI_DELAY}' seconds"
 fi
 
 # ask for confirmation to proceed
@@ -552,17 +553,17 @@ askProceed
 
 # create the network using docker compose
 if [ "${MODE}" == "up" ]; then
-  networkUp
+    networkUp
 elif [ "${MODE}" == "down" ]; then ## Clear the network
-  networkDown
+    networkDown
 elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
-  generateCerts
-  replacePrivateKey
-#   generateChannelArtifacts
+    generateCerts
+    replacePrivateKey
+    generateChannelArtifacts
 elif [ "${MODE}" == "restart" ]; then ## Restart the network
-  networkDown
-  networkUp
+    networkDown
+    networkUp
 else
-  printHelp
-  exit 1
+    printHelp
+    exit 1
 fi

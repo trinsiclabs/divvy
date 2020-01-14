@@ -16,57 +16,57 @@ General:
   LedgerType: file
   # Listen address: The IP on which to bind to listen.
   ListenAddress: 127.0.0.1
-    # Listen port: The port on which to bind to listen.
-    ListenPort: 7050
-    # TLS: TLS settings for the GRPC server.
-    TLS:
-      Enabled: false
-      # PrivateKey governs the file location of the private key of the TLS certificate.
-      PrivateKey: tls/server.key
-      # Certificate governs the file location of the server TLS certificate.
-      Certificate: tls/server.crt
-      RootCAs:
-        - tls/ca.crt
-      ClientAuthRequired: false
-      ClientRootCAs:
-    # Keepalive settings for the GRPC server.
-    Keepalive:
-      # ServerMinInterval is the minimum permitted time between client pings.
-      # If clients send pings more frequently, the server will
-      # disconnect them.
-      ServerMinInterval: 60s
-      # ServerInterval is the time between pings to clients.
-      ServerInterval: 7200s
-      # ServerTimeout is the duration the server waits for a response from
-      # a client before closing the connection.
-      ServerTimeout: 20s
-    # Cluster settings for ordering service nodes that communicate with other ordering service nodes
-    # such as Raft based ordering service.
-    Cluster:
-      # SendBufferSize is the maximum number of messages in the egress buffer.
-      # Consensus messages are dropped if the buffer is full, and transaction
-      # messages are waiting for space to be freed.
-      SendBufferSize: 10
-      # ClientCertificate governs the file location of the client TLS certificate
-      # used to establish mutual TLS connections with other ordering service nodes.
-      ClientCertificate:
-      # ClientPrivateKey governs the file location of the private key of the client TLS certificate.
-      ClientPrivateKey:
-      # The below 4 properties should be either set together, or be unset together.
-      # If they are set, then the orderer node uses a separate listener for intra-cluster
-      # communication. If they are unset, then the general orderer listener is used.
-      # This is useful if you want to use a different TLS server certificates on the
-      # client-facing and the intra-cluster listeners.
+  # Listen port: The port on which to bind to listen.
+  ListenPort: 7050
+  # TLS: TLS settings for the GRPC server.
+  TLS:
+    Enabled: false
+    # PrivateKey governs the file location of the private key of the TLS certificate.
+    PrivateKey: tls/server.key
+    # Certificate governs the file location of the server TLS certificate.
+    Certificate: tls/server.crt
+    RootCAs:
+      - tls/ca.crt
+    ClientAuthRequired: false
+    ClientRootCAs:
+  # Keepalive settings for the GRPC server.
+  Keepalive:
+    # ServerMinInterval is the minimum permitted time between client pings.
+    # If clients send pings more frequently, the server will
+    # disconnect them.
+    ServerMinInterval: 60s
+    # ServerInterval is the time between pings to clients.
+    ServerInterval: 7200s
+    # ServerTimeout is the duration the server waits for a response from
+    # a client before closing the connection.
+    ServerTimeout: 20s
+  # Cluster settings for ordering service nodes that communicate with other ordering service nodes
+  # such as Raft based ordering service.
+  Cluster:
+    # SendBufferSize is the maximum number of messages in the egress buffer.
+    # Consensus messages are dropped if the buffer is full, and transaction
+    # messages are waiting for space to be freed.
+    SendBufferSize: 10
+    # ClientCertificate governs the file location of the client TLS certificate
+    # used to establish mutual TLS connections with other ordering service nodes.
+    ClientCertificate:
+    # ClientPrivateKey governs the file location of the private key of the client TLS certificate.
+    ClientPrivateKey:
+    # The below 4 properties should be either set together, or be unset together.
+    # If they are set, then the orderer node uses a separate listener for intra-cluster
+    # communication. If they are unset, then the general orderer listener is used.
+    # This is useful if you want to use a different TLS server certificates on the
+    # client-facing and the intra-cluster listeners.
 
-      # ListenPort defines the port on which the cluster listens to connections.
-      ListenPort:
-      # ListenAddress defines the IP on which to listen to intra-cluster communication.
-      ListenAddress:
-      # ServerCertificate defines the file location of the server TLS certificate used for intra-cluster
-      # communication.
-      ServerCertificate:
-      # ServerPrivateKey defines the file location of the private key of the TLS certificate.
-      ServerPrivateKey:
+    # ListenPort defines the port on which the cluster listens to connections.
+    ListenPort:
+    # ListenAddress defines the IP on which to listen to intra-cluster communication.
+    ListenAddress:
+    # ServerCertificate defines the file location of the server TLS certificate used for intra-cluster
+    # communication.
+    ServerCertificate:
+    # ServerPrivateKey defines the file location of the private key of the TLS certificate.
+    ServerPrivateKey:
   # Genesis method: The method by which the genesis block for the orderer
   # system channel is specified. Available options are "provisional", "file":
   #  - provisional: Utilizes a genesis profile, specified by GenesisProfile,
