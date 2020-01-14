@@ -1,3 +1,5 @@
+# This file contains config for generating crypto material via ./divvy.sh generate
+
 # ---------------------------------------------------------------------------
 # "OrdererOrgs" - Definition of organizations managing orderer nodes
 # ---------------------------------------------------------------------------

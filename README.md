@@ -7,3 +7,4 @@
 3. Install required Docker images and binaries `$ ./bootstrap.sh`
 4. Add the `./bin` directory to your PATH `export PATH=$PWD/bin:$PATH`
 5. Generate required crypto material, config, and genesis block `$ ./divvy generate`
+6. Bring the network up (and run the tests) `$ ./divvy up`

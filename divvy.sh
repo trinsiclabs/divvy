@@ -26,14 +26,8 @@ COMPOSE_FILE_COUCH=docker-compose-couch.yaml
 # org3 docker compose file
 COMPOSE_FILE_ORG3=docker-compose-org3.yaml
 
-# kafka and zookeeper compose file
-COMPOSE_FILE_KAFKA=docker-compose-kafka.yaml
-
 # two additional etcd/raft orderers
 COMPOSE_FILE_RAFT2=docker-compose-etcdraft2.yaml
-
-# use golang as the default language for chaincode
-LANGUAGE=golang
 
 # default image tag
 IMAGETAG="latest"
@@ -55,7 +49,6 @@ function printHelp() {
     echo "    -d <delay> - delay duration in seconds (defaults to 3)"
     echo "    -f <docker-compose-file> - specify which docker-compose file use (defaults to docker-compose.yaml)"
     echo "    -s <dbtype> - the database backend to use: goleveldb (default) or couchdb"
-    echo "    -l <language> - the chaincode language: node (default) or golang"
     echo "    -o <consensus-type> - the consensus-type of the ordering service: solo (default) or etcdraft"
     echo "    -i <imagetag> - the tag to be used to launch the network (defaults to \"latest\")"
     echo "    -n - do not deploy chaincode (abstore chaincode is deployed by default)"
@@ -391,46 +384,46 @@ function generateChannelArtifacts() {
 
 # Generate the needed certificates, the genesis block and start the network.
 function networkUp() {
-  checkPrereqs
+    checkPrereqs
 
-  # generate artifacts if they don't exist
-  if [ ! -d "crypto-config" ]; then
-    generateCerts
-    replacePrivateKey
-    generateChannelArtifacts
-  fi
+    # generate artifacts if they don't exist
+    if [ ! -d "crypto-config" ]; then
+        generateCerts
+        replacePrivateKey
+        generateChannelArtifacts
+    fi
 
-  COMPOSE_FILES="-f ${COMPOSE_FILE}"
+    COMPOSE_FILES="-f ${COMPOSE_FILE}"
 
-  if [ "${CONSENSUS_TYPE}" == "etcdraft" ]; then
-    COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_RAFT2}"
-  fi
+    if [ "${CONSENSUS_TYPE}" == "etcdraft" ]; then
+        COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_RAFT2}"
+    fi
 
-  if [ "${IF_COUCHDB}" == "couchdb" ]; then
-    COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_COUCH}"
-  fi
+    if [ "${IF_COUCHDB}" == "couchdb" ]; then
+        COMPOSE_FILES="${COMPOSE_FILES} -f ${COMPOSE_FILE_COUCH}"
+    fi
 
-  IMAGE_TAG=$IMAGETAG docker-compose ${COMPOSE_FILES} up -d 2>&1
-  docker ps -a
+    IMAGE_TAG=$IMAGETAG docker-compose ${COMPOSE_FILES} up -d 2>&1
+    docker ps -a
 
-  if [ $? -ne 0 ]; then
-    echo "ERROR !!!! Unable to start network"
-    exit 1
-  fi
+    if [ $? -ne 0 ]; then
+        echo "ERROR !!!! Unable to start network"
+        exit 1
+    fi
 
-  if [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
-    sleep 1
-    echo "Sleeping 15s to allow $CONSENSUS_TYPE cluster to complete booting"
-    sleep 14
-  fi
+    if [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
+        sleep 1
+        echo "Sleeping 15s to allow $CONSENSUS_TYPE cluster to complete booting"
+        sleep 14
+    fi
 
-  # now run the end to end script
-  docker exec cli scripts/script.sh $CHANNEL_NAME $CLI_DELAY $LANGUAGE $CLI_TIMEOUT $VERBOSE $NO_CHAINCODE
+    # now run the end to end script
+    docker exec cli scripts/test.sh $CHANNEL_NAME $CLI_DELAY $CLI_TIMEOUT $VERBOSE $NO_CHAINCODE
 
-  if [ $? -ne 0 ]; then
-    echo "ERROR !!!! Test failed"
-    exit 1
-  fi
+    if [ $? -ne 0 ]; then
+        echo "ERROR !!!! Test failed"
+        exit 1
+    fi
 }
 
 # Obtain CONTAINER_IDS and remove them
@@ -462,7 +455,7 @@ function removeUnwantedImages() {
 function networkDown() {
   # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
   # stop kafka and zookeeper containers in case we're running with kafka consensus-type
-  docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_KAFKA -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
+  docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
 
   # Don't remove the generated artifacts -- note, the ledgers are always removed
   if [ "$MODE" != "restart" ]; then
@@ -521,9 +514,6 @@ while getopts "h?c:t:d:f:s:l:i:o:anv" opt; do
         ;;
     s)
         IF_COUCHDB=$OPTARG
-        ;;
-    l)
-        LANGUAGE=$OPTARG
         ;;
     i)
         IMAGETAG=$(go env GOARCH)"-"$OPTARG
