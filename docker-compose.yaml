@@ -1,0 +1,120 @@
+version: '2'
+
+networks:
+  divvy:
+
+services:
+  ca.divvy.com:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    container_name: ca.divvy.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca.divvy.com
+    ports:
+      - 7054:7054
+    volumes:
+      - ./crypto-config/peerOrganizations/:/etc/hyperledger/fabric-ca-server-config
+      - ./ca.divvy.com/:/etc/hyperledger/fabric-ca-server
+    command: sh -c 'fabric-ca-server start -b admin:adminpw --cafiles ca/org1/ca-config.yaml --cafiles ca/org2/ca-config.yaml'
+    networks:
+      - divvy
+
+  orderer.divvy.com:
+    container_name: orderer.divvy.com
+    extends:
+      file: ./templates/docker-compose-base-services.yaml
+      service: orderer-base
+    environment:
+      - FABRIC_LOGGING_SPEC=DEBUG
+    ports:
+      - 7050:7050
+    volumes:
+      - ./config/:/etc/hyperledger/configtx
+      - ./channel-artifacts/genesis.block:/var/hyperledger/production/orderer/genesis.block
+      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/:/etc/hyperledger/msp/orderer/msp/
+      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/tls/:/etc/hyperledger/msp/orderer/tls/
+      - ./orderer.divvy.com/:/var/hyperledger/production/orderer
+    command: orderer
+    networks:
+      - divvy
+
+  peer.org1.divvy.com:
+    container_name: peer.org1.divvy.com
+    extends:
+      file: ./templates/docker-compose-base-services.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer.org1.divvy.com
+      - CORE_PEER_ADDRESS=peer.org1.divvy.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer.org1.divvy.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer.org1.divvy.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer.org1.divvy.com:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/msp/:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/:/etc/hyperledger/fabric/tls
+      - ./peer.org1.divvy.com/:/var/hyperledger/production
+    ports:
+      - 7051:7051
+    networks:
+      - divvy
+
+  peer.org2.divvy.com:
+    container_name: peer.org2.divvy.com
+    extends:
+      file: ./templates/docker-compose-base-services.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer.org2.divvy.com
+      - CORE_PEER_ADDRESS=peer.org2.divvy.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer.org2.divvy.com:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer.org2.divvy.com:8051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer.org2.divvy.com:8051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/org2.divvy.com/peers/peer.org2.divvy.com/msp/:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/org2.divvy.com/peers/peer.org2.divvy.com/tls/:/etc/hyperledger/fabric/tls
+      - ./peer.org2.divvy.com/:/var/hyperledger/production
+    ports:
+      - 8051:8051
+    networks:
+      - divvy
+
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:$IMAGE_TAG
+    tty: true
+    stdin_open: true
+    environment:
+      - SYS_CHANNEL=$SYS_CHANNEL
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=peer.org1.divvy.com:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/users/Admin@org1.divvy.com/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/ca.crt
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./chaincode/:/opt/gopath/src/github.com/chaincode
+      - ./crypto-config/:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+      - ./scripts/:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+      - ./channel-artifacts/:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    depends_on:
+      - orderer.divvy.com
+      - peer.org1.divvy.com
+      - peer.org2.divvy.com
+    networks:
+      - divvy

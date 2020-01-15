@@ -1,0 +1,8 @@
+/bin
+/ca.divvy.com
+/channel-artifacts
+/crypto-config
+node_modules
+/orderer.*
+/org-config
+/peer.*

@@ -1,0 +1,34 @@
+---
+name: divvy-org${ORG}
+version: 1.0.0
+client:
+  organization: Org${ORG}
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+organizations:
+  Org${ORG}:
+    mspid: Org${ORG}MSP
+    peers:
+      - peer.org${ORG}.divvy.com
+    certificateAuthorities:
+      - ca.divvy.com
+peers:
+  peer.org${ORG}.divvy.com:
+    url: grpcs://localhost:${PEERPORT}
+    tlsCACerts:
+      pem: |
+        ${PEERPEM}
+    grpcOptions:
+      ssl-target-name-override: peer.org${ORG}.divvy.com
+      hostnameOverride: peer.org${ORG}.divvy.com
+certificateAuthorities:
+  ca.divvy.com:
+    url: https://localhost:${CAPORT}
+    caName: ca.divvy.com
+    tlsCACerts:
+      pem: |
+        ${CAPEM}
+    httpOptions:
+      verify: false
