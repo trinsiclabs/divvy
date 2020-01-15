@@ -2,5 +2,7 @@
 /ca.divvy.com
 /channel-artifacts
 /crypto-config
-/orderer.divvy.com
+node_modules
+/orderer.*
 /org-config
+/peer.*

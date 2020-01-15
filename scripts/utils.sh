@@ -1,9 +1,9 @@
 # This is a collection of bash functions used by different scripts
 
-ORDERER_CA=../crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/tlscacerts/tlsca.divvy.com-cert.pem
-PEER_ORG1_CA=../crypto-config/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/ca.crt
-PEER_ORG2_CA=../crypto-config/peerOrganizations/org2.divvy.com/peers/peer.org2.divvy.com/tls/ca.crt
-PEER_ORG3_CA=../crypto-config/peerOrganizations/org3.divvy.com/peers/peer.org3.divvy.com/tls/ca.crt
+ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/tlscacerts/tlsca.divvy.com-cert.pem
+PEER_ORG1_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/peers/peer.org1.divvy.com/tls/ca.crt
+PEER_ORG2_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.divvy.com/peers/peer.org2.divvy.com/tls/ca.crt
+PEER_ORG3_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org3.divvy.com/peers/peer.org3.divvy.com/tls/ca.crt
 
 # verify the result of the end-to-end test
 verifyResult() {
@@ -18,8 +18,8 @@ verifyResult() {
 # Set OrdererOrg.Admin globals
 setOrdererGlobals() {
     CORE_PEER_LOCALMSPID="OrdererMSP"
-    CORE_PEER_TLS_ROOTCERT_FILE=../crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/tlscacerts/tlsca.divvy.com-cert.pem
-    CORE_PEER_MSPCONFIGPATH=../crypto-config/ordererOrganizations/divvy.com/users/Admin@divvy.com/msp
+    CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/tlscacerts/tlsca.divvy.com-cert.pem
+    CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/divvy.com/users/Admin@divvy.com/msp
 }
 
 setGlobals() {
@@ -27,18 +27,18 @@ setGlobals() {
     if [ $ORG -eq 1 ]; then
         CORE_PEER_LOCALMSPID="Org1MSP"
         CORE_PEER_TLS_ROOTCERT_FILE=$PEER_ORG1_CA
-        CORE_PEER_MSPCONFIGPATH=../crypto-config/peerOrganizations/org1.divvy.com/users/Admin@org1.divvy.com/msp
+        CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.divvy.com/users/Admin@org1.divvy.com/msp
         CORE_PEER_ADDRESS=peer.org1.divvy.com:7051
     elif [ $ORG -eq 2 ]; then
         CORE_PEER_LOCALMSPID="Org2MSP"
         CORE_PEER_TLS_ROOTCERT_FILE=$PEER_ORG2_CA
-        CORE_PEER_MSPCONFIGPATH=../crypto-config/peerOrganizations/org2.divvy.com/users/Admin@org2.divvy.com/msp
-        CORE_PEER_ADDRESS=peer.org2.divvy.com:7051
+        CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org2.divvy.com/users/Admin@org2.divvy.com/msp
+        CORE_PEER_ADDRESS=peer.org2.divvy.com:8051
     elif [ $ORG -eq 3 ]; then
         CORE_PEER_LOCALMSPID="Org3MSP"
         CORE_PEER_TLS_ROOTCERT_FILE=$PEER_ORG3_CA
-        CORE_PEER_MSPCONFIGPATH=../crypto-config/peerOrganizations/org3.divvy.com/users/Admin@org3.divvy.com/msp
-        CORE_PEER_ADDRESS=peer.org3.divvy.com:7051
+        CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org3.divvy.com/users/Admin@org3.divvy.com/msp
+        CORE_PEER_ADDRESS=peer.org3.divvy.com:9051
     else
         echo "================== ERROR !!! ORG Unknown =================="
     fi
@@ -99,7 +99,7 @@ installChaincode() {
     setGlobals $ORG
     VERSION=${3:-1.0}
     set -x
-    peer chaincode install -n mycc -v ${VERSION} -l ${LANGUAGE} -p ${CC_SRC_PATH} >&log.txt
+    peer chaincode install -n mycc -v ${VERSION} -l node -p ${CC_SRC_PATH} >&log.txt
     res=$?
     set +x
     cat log.txt
@@ -118,12 +118,12 @@ instantiateChaincode() {
     # the "-o" option
     if [ -z "$CORE_PEER_TLS_ENABLED" -o "$CORE_PEER_TLS_ENABLED" = "false" ]; then
         set -x
-        peer chaincode instantiate -o orderer.divvy.com:7050 -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+        peer chaincode instantiate -o orderer.divvy.com:7050 -C $CHANNEL_NAME -n mycc -l node -v ${VERSION} -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
         res=$?
         set +x
     else
         set -x
-        peer chaincode instantiate -o orderer.divvy.com:7050 --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l ${LANGUAGE} -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
+        peer chaincode instantiate -o orderer.divvy.com:7050 --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA -C $CHANNEL_NAME -n mycc -l node -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -P "AND ('Org1MSP.peer','Org2MSP.peer')" >&log.txt
         res=$?
         set +x
     fi

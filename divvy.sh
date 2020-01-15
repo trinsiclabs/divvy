@@ -30,7 +30,7 @@ COMPOSE_FILE_ORG3=docker-compose-org3.yaml
 COMPOSE_FILE_RAFT2=docker-compose-etcdraft2.yaml
 
 # default image tag
-IMAGETAG="latest"
+IMAGETAG="1.4.3"
 
 # default consensus type
 CONSENSUS_TYPE="solo"
@@ -212,7 +212,7 @@ function generateCerts() {
     echo "$(generate_ca_config $ORG)" > ./ca.divvy.com/ca/org${ORG}/ca-config.yaml
 
     ORG=2
-    PEERPORT=9051
+    PEERPORT=8051
     CAPORT=7054
     PEERPEM=crypto-config/peerOrganizations/org2.divvy.com/tlsca/tlsca.org2.divvy.com-cert.pem
     CAPEM=crypto-config/peerOrganizations/org2.divvy.com/ca/ca.org2.divvy.com-cert.pem
@@ -316,9 +316,9 @@ function generateChannelArtifacts() {
     set -x
 
     if [ "$CONSENSUS_TYPE" == "solo" ]; then
-        configtxgen -configPath ./config -profile DivvyGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
+        configtxgen -profile DivvyGenesis -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
     elif [ "$CONSENSUS_TYPE" == "etcdraft" ]; then
-        configtxgen -configPath ./config -profile SampleDevModeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
+        configtxgen -profile SampleDevModeEtcdRaft -channelID $SYS_CHANNEL -outputBlock ./channel-artifacts/genesis.block
     else
         set +x
         echo "unrecognized CONSESUS_TYPE='$CONSENSUS_TYPE'. exiting"
@@ -339,7 +339,7 @@ function generateChannelArtifacts() {
     echo "#################################################################"
 
     set -x
-    configtxgen -configPath ./config -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
+    configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID $CHANNEL_NAME
     res=$?
     set +x
 
@@ -354,7 +354,7 @@ function generateChannelArtifacts() {
     echo "#################################################################"
 
     set -x
-    configtxgen -configPath ./config -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
+    configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org1MSP
     res=$?
     set +x
 
@@ -369,7 +369,7 @@ function generateChannelArtifacts() {
     echo "#################################################################"
 
     set -x
-    configtxgen -configPath ./config -profile TwoOrgsChannel -outputAnchorPeersUpdate \
+    configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate \
         ./channel-artifacts/Org2MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org2MSP
     res=$?
     set +x
@@ -429,52 +429,48 @@ function networkUp() {
 # Obtain CONTAINER_IDS and remove them
 # TODO Might want to make this optional - could clear other containers
 function clearContainers() {
-  CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
+    CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /hyperledger.*/) {print $1}')
 
-  if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
-    echo "---- No containers available for deletion ----"
-  else
-    docker rm -f $CONTAINER_IDS
-  fi
+    if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
+        echo "---- No containers available for deletion ----"
+    else
+        docker rm -f $CONTAINER_IDS
+    fi
 }
 
 # Delete any images that were generated as a part of this setup
 # specifically the following images are often left behind:
 # TODO list generated image naming patterns
 function removeUnwantedImages() {
-  DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*/) {print $3}')
+    DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*/) {print $3}')
 
-  if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
-    echo "---- No images available for deletion ----"
-  else
-    docker rmi -f $DOCKER_IMAGE_IDS
-  fi
+    if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
+        echo "---- No images available for deletion ----"
+    else
+        docker rmi -f $DOCKER_IMAGE_IDS
+    fi
 }
 
 # Tear down running network
 function networkDown() {
-  # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
-  # stop kafka and zookeeper containers in case we're running with kafka consensus-type
-  docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
+    # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
+    docker-compose -f $COMPOSE_FILE -f $COMPOSE_FILE_COUCH -f $COMPOSE_FILE_RAFT2 -f $COMPOSE_FILE_ORG3 down --volumes --remove-orphans
 
-  # Don't remove the generated artifacts -- note, the ledgers are always removed
-  if [ "$MODE" != "restart" ]; then
-    # Bring down the network, deleting the volumes
-    # Delete any ledger backups
-    docker run -v $PWD:/tmp/first-network --rm hyperledger/fabric-tools:$IMAGETAG rm -Rf /tmp/first-network/ledgers-backup
+    # Don't remove the generated artifacts -- note, the ledgers are always removed
+    if [ "$MODE" != "restart" ]; then
+        # Bring down the network, deleting the volumes
+        # Delete any ledger backups
+        docker run -v $PWD:/tmp/divvy --rm hyperledger/fabric-tools:$IMAGETAG rm -Rf /tmp/divvy/ledgers-backup
 
-    # Cleanup the chaincode containers
-    clearContainers
+        # Cleanup the chaincode containers
+        clearContainers
 
-    # Cleanup images
-    removeUnwantedImages
+        # Cleanup images
+        removeUnwantedImages
 
-    # remove orderer block and other channel configuration transactions and certs
-    rm -rf channel-artifacts/*.block channel-artifacts/*.tx crypto-config ./org3-artifacts/crypto-config/ channel-artifacts/org3.json
-
-    # remove the docker-compose yaml file that was customized to the example
-    rm -f docker-compose-e2e.yaml
-  fi
+        # remove orderer block and other channel configuration transactions and certs
+        rm -rf channel-artifacts/*.block channel-artifacts/*.tx crypto-config ./org3-artifacts/crypto-config/ channel-artifacts/org3.json
+    fi
 }
 
 MODE=$1

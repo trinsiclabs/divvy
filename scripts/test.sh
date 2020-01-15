@@ -21,7 +21,7 @@ NO_CHAINCODE="$5"
 : ${NO_CHAINCODE:="false"}
 COUNTER=1
 MAX_RETRY=10
-CC_SRC_PATH="/opt/gopath/src/github.com/chaincode/chaincode_example02/node/"
+CC_SRC_PATH="/opt/gopath/src/github.com/chaincode"
 
 echo "Channel name : "$CHANNEL_NAME
 
@@ -29,33 +29,33 @@ echo "Channel name : "$CHANNEL_NAME
 . scripts/utils.sh
 
 createChannel() {
-	setGlobals 0 1
+    setGlobals 1
 
-	if [ -z "$CORE_PEER_TLS_ENABLED" -o "$CORE_PEER_TLS_ENABLED" = "false" ]; then
+    if [ -z "$CORE_PEER_TLS_ENABLED" -o "$CORE_PEER_TLS_ENABLED" = "false" ]; then
         set -x
-		peer channel create -o orderer.divvy.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx >&log.txt
-		res=$?
+        peer channel create -o orderer.divvy.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx >&log.txt
+        res=$?
         set +x
-	else
-		set -x
-		peer channel create -o orderer.divvy.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA >&log.txt
-		res=$?
-		set +x
-	fi
+    else
+        set -x
+        peer channel create -o orderer.divvy.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA >&log.txt
+        res=$?
+        set +x
+    fi
 
-	cat log.txt
-	verifyResult $res "Channel creation failed"
-	echo "===================== Channel '$CHANNEL_NAME' created ===================== "
-	echo
+    cat log.txt
+    verifyResult $res "Channel creation failed"
+    echo "===================== Channel '$CHANNEL_NAME' created ===================== "
+    echo
 }
 
 joinChannel () {
-	for org in 1 2; do
+    for org in 1 2; do
         joinChannelWithRetry $org
         echo "===================== peer.org${org} joined channel '$CHANNEL_NAME' ===================== "
         sleep $DELAY
         echo
-	done
+    done
 }
 
 ## Create channel
