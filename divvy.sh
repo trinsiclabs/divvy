@@ -121,7 +121,7 @@ function generate_json_ccp {
         -e "s/\${CAPORT}/$3/" \
         -e "s#\${PEERPEM}#$PP#" \
         -e "s#\${CAPEM}#$CP#" \
-        ./templates/ccp-template.json
+        ./templates/connection-profile-template.json
 }
 
 function generate_yaml_ccp {
@@ -132,7 +132,7 @@ function generate_yaml_ccp {
         -e "s/\${CAPORT}/$3/" \
         -e "s#\${PEERPEM}#$PP#" \
         -e "s#\${CAPEM}#$CP#" \
-        ./templates/ccp-template.yaml | sed -e $'s/\\\\n/\\\n        /g'
+        ./templates/connection-profile-template.yaml | sed -e $'s/\\\\n/\\\n        /g'
 }
 
 function generate_ca_config {

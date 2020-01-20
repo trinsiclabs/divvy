@@ -1,0 +1,34 @@
+---
+name: ${NAME}
+version: 1.0.0
+client:
+  organization: ${NAME}
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+organizations:
+  ${NAME}:
+    mspid: ${MSP_NAME}
+    peers:
+      - peer.${NAME}.divvy.com
+    certificateAuthorities:
+      - ca.divvy.com
+peers:
+  peer.${NAME}.divvy.com:
+    url: grpcs://localhost:${PEER_PORT}
+    tlsCACerts:
+      pem: |
+        ${PEER_PEM}
+    grpcOptions:
+      ssl-target-name-override: peer.${NAME}.divvy.com
+      hostnameOverride: peer.${NAME}.divvy.com
+certificateAuthorities:
+  ca.divvy.com:
+    url: https://localhost:7054
+    caName: ca.divvy.com
+    tlsCACerts:
+      pem: |
+        ${CA_PEM}
+    httpOptions:
+      verify: false

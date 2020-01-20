@@ -1,0 +1,8 @@
+---
+PeerOrgs:
+  - Name: ${NAME}
+    Domain: ${NAME}.divvy.com
+    Specs:
+      - Hostname: peer
+    Users:
+      Count: 1

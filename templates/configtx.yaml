@@ -1,0 +1,19 @@
+---
+Organizations:
+  - &${MSP_NAME}
+    Name: ${MSP_NAME}
+    ID: ${MSP_NAME}
+    MSPDir: ../../crypto-config/peerOrganizations/${NAME}.divvy.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.peer', '${MSP_NAME}.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('${MSP_NAME}.admin')"
+    AnchorPeers:
+      - Host: peer.${NAME}.divvy.com
+        Port: ${PEER_PORT}
