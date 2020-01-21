@@ -15,8 +15,8 @@
 
 ## Creating an Organisation
 
-`$ ./createorg.sh -n <org name>`
+`$ ./createorg.sh --name <org name>`
 
 ## Removing an Organisation
 
-`$ ./removeorg.sh -n <org name>`
+`$ ./removeorg.sh --name <org name>`

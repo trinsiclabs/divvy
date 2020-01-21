@@ -1,7 +1,0 @@
----
-ca:
-  name: ${NAME}
-  certfile: /etc/hyperledger/fabric-ca-server-config/${NAME}.divvy.com/ca/ca.${NAME}.divvy.com-cert.pem
-  keyfile: /etc/hyperledger/fabric-ca-server-config/${NAME}.divvy.com/ca/${PRIV_KEY}
-csr:
-  cn: ${NAME}

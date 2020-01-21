@@ -1,8 +1,27 @@
 version: '2'
 
+networks:
+  divvy:
+
 services:
+  ca.${NAME}.divvy.com:
+    image: hyperledger/fabric-ca:1.4.4
+    container_name: ca.${NAME}.divvy.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca.${NAME}.divvy.com
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.${NAME}.divvy.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/${PRIV_KEY}
+    ports:
+      - ${CA_PORT}:7054
+    volumes:
+      - ./crypto-config/peerOrganizations/${NAME}.divvy.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    command: sh -c 'fabric-ca-server start -b admin:adminpw'
+    networks:
+      - divvy
+
   peer.${NAME}.divvy.com:
-    image: hyperledger/fabric-peer:1.4.3
+    image: hyperledger/fabric-peer:1.4.4
     container_name: peer.${NAME}.divvy.com
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
@@ -31,5 +50,32 @@ services:
       # - ../../peer.${NAME}.divvy.com/config/connection-profile.yaml:/etc/hyperledger/fabric/connection-profile.yaml
     ports:
       - ${PEER_PORT}:${PEER_PORT}
+    networks:
+      - divvy
+
+  cli.${NAME}.divvy.com:
+    image: hyperledger/fabric-tools:1.4.4
+    container_name: cli.${NAME}.divvy.com
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli.${NAME}.divvy.com
+      - CORE_PEER_ADDRESS=peer.${NAME}.divvy.com:${PEER_PORT}
+      - CORE_PEER_LOCALMSPID=${MSP_NAME}
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/users/Admin@${NAME}.divvy.com/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/ca.crt
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+    depends_on:
+      - peer.${NAME}.divvy.com
     networks:
       - divvy

@@ -1,6 +1,5 @@
 # This is a collection of bash functions used by different scripts
 
-# Ask user for confirmation to proceed.
 function askProceed() {
     read -p "Continue? [Y/n] " ans
     case "$ans" in
@@ -22,4 +21,13 @@ function askProceed() {
 # Remove all non-alphanumeric characters from a string and transform to lowercase.
 function generateSlug() {
     echo $1 | tr -dc '[:alnum:]' | tr '[:upper:]' '[:lower:]'
+}
+
+function generateCryptoMaterial() {
+    cryptogen generate --config=$1
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate certificates..."
+        exit 1
+    fi
 }

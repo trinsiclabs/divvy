@@ -1,28 +1,23 @@
-#!/bin/bash
-
 # if version not passed in, default to latest released version
-export VERSION=1.4.3
+export VERSION=1.4.4
 
 # if ca version not passed in, default to latest released version
-export CA_VERSION=1.4.3
-
-# current version of thirdparty images (couchdb) released
-export THIRDPARTY_IMAGE_VERSION=0.4.18
+export CA_VERSION=1.4.4
 
 export ARCH=$(echo "$(uname -s|tr '[:upper:]' '[:lower:]'|sed 's/mingw64_nt.*/windows/')-$(uname -m | sed 's/x86_64/amd64/g')")
 
 export MARCH=$(uname -m)
 
 printHelp() {
-    echo "Usage: bootstrap.sh [version [ca_version [thirdparty_version]]] [options]"
+    echo "Usage: bootstrap.sh [version [ca_version]] [options]"
     echo
     echo "options:"
     echo "-h : this help"
     echo "-d : bypass docker image download"
     echo "-b : bypass download of platform-specific binaries"
     echo
-    echo "e.g. bootstrap.sh 2.0"
-    echo "would download docker images and binaries for version 2.0"
+    echo "e.g. bootstrap.sh 1.4.4 -s"
+    echo "would download docker images and binaries for version 1.4.4"
 }
 
 dockerFabricPull() {
@@ -34,18 +29,6 @@ dockerFabricPull() {
 
         docker pull hyperledger/fabric-$IMAGES:$FABRIC_TAG
         docker tag hyperledger/fabric-$IMAGES:$FABRIC_TAG hyperledger/fabric-$IMAGES
-    done
-}
-
-dockerThirdPartyImagesPull() {
-    local THIRDPARTY_TAG=$1
-
-    for IMAGES in couchdb; do
-        echo "==> THIRDPARTY DOCKER IMAGE: $IMAGES"
-        echo
-
-        docker pull hyperledger/fabric-$IMAGES:$THIRDPARTY_TAG
-        docker tag hyperledger/fabric-$IMAGES:$THIRDPARTY_TAG hyperledger/fabric-$IMAGES
     done
 }
 
@@ -73,8 +56,8 @@ binaryIncrementalDownload() {
     # curl returns 2 after finishing a resumed download
     # with -f curl returns 22 on a 404
     if [ "$rc" = 22 ]; then
-	    # looks like the requested file doesn't actually exist so stop here
-	    return 22
+        # looks like the requested file doesn't actually exist so stop here
+        return 22
     fi
 
     if [ -z "$rc" ] || [ $rc -eq 33 ] || [ $rc -eq 2 ]; then
@@ -155,9 +138,6 @@ dockerInstall() {
         dockerFabricPull ${FABRIC_TAG}
         echo "===> Pulling fabric ca Image"
         dockerCaPull ${CA_TAG}
-        echo "===> Pulling thirdparty docker images"
-        dockerThirdPartyImagesPull ${THIRDPARTY_TAG}
-        echo
         echo "===> List out hyperledger docker images"
         docker images | grep hyperledger*
     else
@@ -177,10 +157,6 @@ if [ ! -z "$1" -a ${1:0:1} != "-" ]; then
 
     if [ ! -z "$1"  -a ${1:0:1} != "-" ]; then
         CA_VERSION=$1;shift
-
-        if [ ! -z "$1"  -a ${1:0:1} != "-" ]; then
-            THIRDPARTY_IMAGE_VERSION=$1;shift
-        fi
     fi
 fi
 
@@ -188,19 +164,17 @@ fi
 if [[ $VERSION =~ ^1\.[0-1]\.* ]]; then
     export FABRIC_TAG=${MARCH}-${VERSION}
     export CA_TAG=${MARCH}-${CA_VERSION}
-    export THIRDPARTY_TAG=${MARCH}-${THIRDPARTY_IMAGE_VERSION}
 else
   # starting with 1.2.0, multi-arch images will be default
   : ${CA_TAG:="$CA_VERSION"}
   : ${FABRIC_TAG:="$VERSION"}
-  : ${THIRDPARTY_TAG:="$THIRDPARTY_IMAGE_VERSION"}
 fi
 
 BINARY_FILE=hyperledger-fabric-${ARCH}-${VERSION}.tar.gz
 CA_BINARY_FILE=hyperledger-fabric-ca-${ARCH}-${CA_VERSION}.tar.gz
 
 # then parse opts
-while getopts "h?dsb" opt; do
+while getopts "h?db" opt; do
     case "$opt" in
         h|\?)
             printHelp
@@ -219,7 +193,6 @@ if [ "$BINARIES" == "true" ]; then
     echo
     binariesInstall
 fi
-
 if [ "$DOCKER" == "true" ]; then
     echo
     echo "Installing Hyperledger Fabric docker images"

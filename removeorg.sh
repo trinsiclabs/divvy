@@ -1,27 +1,41 @@
 #!/bin/bash
 
 NAME=""
+CRYPTO_DIR=""
+CONFIG_DIR=""
+VOLUME_DIR=""
 
 . utils.sh
 
 function printHelp() {
     echo "Usage: "
     echo "  removeorg.sh -n <org name>"
-    echo "    -n <org name> - organisation name to remove"
-    echo "  removeorg.sh -h (print this message)"
+    echo "    --name <org name> - organisation name to remove"
+    echo "  removeorg.sh --help (print this message)"
 }
 
-while getopts "hn:" opt; do
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+    opt="$1"
     case "$opt" in
-        h)
+        --help)
             printHelp
             exit 0
             ;;
-        n)
-            NAME="$(generateSlug $OPTARG)"
+        --name)
+            NAME="$(generateSlug $2)"
+            MSP_NAME="${NAME}-msp"
+            shift
+            shift
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
             ;;
     esac
 done
+set -- "${POSITIONAL[@]}" # restore positional parameters
 
 if [ "$NAME" == "" ]; then
     echo "No organisation name specified."
@@ -32,7 +46,11 @@ fi
 
 askProceed
 
-for dir in "ca.divvy.com/$NAME" "crypto-config/peerOrganizations/$NAME.divvy.com" "org-config/$NAME"; do
+CRYPTO_DIR="crypto-config/peerOrganizations/$NAME.divvy.com"
+CONFIG_DIR="org-config/$NAME"
+VOLUME_DIR="peer.$NAME.divvy.com"
+
+for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR"; do
     echo "Removing $dir"
     rm -rf $dir
 done

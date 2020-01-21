@@ -13,7 +13,7 @@ organizations:
     peers:
       - peer.${NAME}.divvy.com
     certificateAuthorities:
-      - ca.divvy.com
+      - ca.${NAME}.divvy.com
 peers:
   peer.${NAME}.divvy.com:
     url: grpcs://localhost:${PEER_PORT}
@@ -24,9 +24,9 @@ peers:
       ssl-target-name-override: peer.${NAME}.divvy.com
       hostnameOverride: peer.${NAME}.divvy.com
 certificateAuthorities:
-  ca.divvy.com:
-    url: https://localhost:7054
-    caName: ca.divvy.com
+  ca.${NAME}.divvy.com:
+    url: https://localhost:${CA_PORT}
+    caName: ca.${NAME}.divvy.com
     tlsCACerts:
       pem: |
         ${CA_PEM}

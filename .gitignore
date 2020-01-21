@@ -1,6 +1,7 @@
 /bin
 /ca.divvy.com
 /channel-artifacts
+/config
 /crypto-config
 node_modules
 /orderer.*

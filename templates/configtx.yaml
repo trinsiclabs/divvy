@@ -1,19 +1,70 @@
 ---
 Organizations:
   - &${MSP_NAME}
-    Name: ${MSP_NAME}
-    ID: ${MSP_NAME}
-    MSPDir: ../../crypto-config/peerOrganizations/${NAME}.divvy.com/msp
-    Policies:
-      Readers:
-        Type: Signature
-        Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.peer', '${MSP_NAME}.client')"
-      Writers:
-        Type: Signature
-        Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.client')"
-      Admins:
-        Type: Signature
-        Rule: "OR('${MSP_NAME}.admin')"
-    AnchorPeers:
-      - Host: peer.${NAME}.divvy.com
-        Port: ${PEER_PORT}
+      Name: ${MSP_NAME}
+      ID: ${MSP_NAME}
+      MSPDir: ../../crypto-config/peerOrganizations/${NAME}.divvy.com/msp
+      Policies:
+        Readers:
+          Type: Signature
+          Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.peer', '${MSP_NAME}.client')"
+        Writers:
+          Type: Signature
+          Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.client')"
+        Admins:
+          Type: Signature
+          Rule: "OR('${MSP_NAME}.admin')"
+      AnchorPeers:
+        - Host: peer.${NAME}.divvy.com
+          Port: ${PEER_PORT}
+
+# Capabilities:
+#   Channel: &ChannelCapabilities
+#     V1_4_2: true
+#     V1_3: false
+#     V1_1: false
+#   Application: &ApplicationCapabilities
+#     V1_4_2: true
+#     V1_3: false
+#     V1_2: false
+#     V1_1: false
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  # Capabilities:
+  #   <<: *ApplicationCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  # Capabilities:
+  #   <<: *ChannelCapabilities
+
+Profiles:
+  ${NAME}-channel:
+    Consortium: ${NAME}-consortium
+    <<: *ChannelDefaults
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *${MSP_NAME}
+      # Capabilities:
+      #   <<: *ApplicationCapabilities
