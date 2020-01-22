@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PATH=$PWD/bin:$PATH
+
 # timeout duration - the duration the CLI should wait for a response from
 # another container before giving up
 # CLI_TIMEOUT=10
@@ -41,7 +43,7 @@ function checkPrereqs() {
         which $tool > /dev/null 2>&1
 
         if [ "$?" -ne 0 ]; then
-            echo "${tool} not found. Make sure the binaries have been added to your path."
+            echo "${tool} not found. Have you run the bootstrap script?"
             exit 1
         fi
     done

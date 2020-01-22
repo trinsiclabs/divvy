@@ -10,8 +10,8 @@
 6. Reset the config file `git checkout config/configtx.yaml` (it gets clobbered by bootstrapping).
 7. Add the `./bin` directory to your PATH `export PATH=$PWD/bin:$PATH`
 8. Set FABRIC_CFG_PATH `export FABRIC_CFG_PATH=$PWD/config` (used by binaries in `./bin`)
-9. Generate required crypto material, config, and genesis block `$ ./divvy generate`
-10. Bring the network up (and run the tests) `$ ./divvy up`
+9. Generate required crypto material, config, and genesis block `$ ./network generate`
+10. Bring the network up (and run the tests) `$ ./network up`
 
 ## Creating an Organisation
 

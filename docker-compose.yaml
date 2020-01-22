@@ -58,7 +58,6 @@ services:
     image: hyperledger/fabric-tools:1.4.4
     container_name: cli.divvy.com
     tty: true
-    stdin_open: true
     environment:
       - GOPATH=/opt/gopath
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PATH=$PWD/bin:$PATH
+
 NAME=""
 MSP_NAME=""
 CONFIG_DIR=""
@@ -77,50 +79,85 @@ function generateDockerCompose() {
 }
 
 function addOrgToConsortium() {
-    local $ORG_DEF="./org-config/$1/$1.json"
-    local $CONF_BLOCK="./config-$1.pb"
-    local $CONF_MOD_BLOCK="./config-modified-$1.pb"
-    local $CONF_DELTA_BLOCK="./config-delta-$1.pb"
-    local $CONF_JSON="./config-$1.json"
-    local $CONF_MOD_JSON="./config-modified-$1.json"
-    local $CONF_DELTA_JSON="./config-delta-$1.json"
-    local $PAYLOAD_BLOCK="./payload-$1.pb"
-    local $PAYLOAD_JSON="./payload-$1.json"
+    local OUT_DIR="./org-creation/$1"
+    local ORG_DEF="./org-config/$1/$1.json"
+    local CONF_BLOCK="$OUT_DIR/config-$1.pb"
+    local CONF_MOD_BLOCK="$OUT_DIR/config-modified-$1.pb"
+    local CONF_DELTA_BLOCK="$OUT_DIR/config-delta-$1.pb"
+    local CONF_JSON="$OUT_DIR/config-$1.json"
+    local CONF_MOD_JSON="$OUT_DIR/config-modified-$1.json"
+    local CONF_DELTA_JSON="$OUT_DIR/config-delta-$1.json"
+    local PAYLOAD_BLOCK="$OUT_DIR/payload-$1.pb"
+    local PAYLOAD_JSON="$OUT_DIR/payload-$1.json"
+
+    # Create an output directory for the config files we're about to generate.
+    docker exec cli.divvy.com mkdir -p $OUT_DIR
 
     # Get the latest config block from the sys-channel.
     docker exec cli.divvy.com peer channel fetch config $CONF_BLOCK -o orderer.divvy.com:7050 -c sys-channel
 
     # Convert the block to JSON so we can modify it.
-    docker exec cli.divvy.com configtxlator proto_decode --input $CONF_BLOCK --type common.Block | jq .data.data[0].payload.data.config > $CONF_JSON
+    docker exec -i \
+        -e CONF_BLOCK=$CONF_BLOCK \
+        -e CONF_JSON=$CONF_JSON \
+        cli.divvy.com bash <<EOF
+        configtxlator proto_decode --input $CONF_BLOCK --type common.Block | jq .data.data[0].payload.data.config > $CONF_JSON
+EOF
 
     # Add the Org definition to config.
-    docker exec cli.divvy.com jq -s --arg MSP_NAME "$2"'.[0] * {"channel_group":{"groups":{"Consortiums":{"groups": {"Default": {"groups": {"$MSP_NAME":.[1]}, "mod_policy": "/Channel/Orderer/Admins", "policies": {}, "values": {"ChannelCreationPolicy": {"mod_policy": "/Channel/Orderer/Admins","value": {"type": 3,"value": {"rule": "ANY","sub_policy": "Admins"}},"version": "0"}},"version": "0"}}}}}}' $CONF_JSON $ORG_DEF > $CONF_MOD_JSON
+    docker exec -i \
+        -e MSP_NAME=$2 \
+        -e CONF_JSON=$CONF_JSON \
+        -e ORG_DEF=$ORG_DEF \
+        -e CONF_MOD_JSON=$CONF_MOD_JSON \
+        cli.divvy.com bash <<EOF
+        jq -s --arg MSP_NAME "$MSP_NAME" '.[0] * {"channel_group":{"groups":{"Consortiums":{"groups": {"Default": {"groups": {"$MSP_NAME":.[1]}, "mod_policy": "/Channel/Orderer/Admins", "policies": {}, "values": {"ChannelCreationPolicy": {"mod_policy": "/Channel/Orderer/Admins","value": {"type": 3,"value": {"rule": "ANY","sub_policy": "Admins"}},"version": "0"}},"version": "0"}}}}}}' $CONF_JSON $ORG_DEF > $CONF_MOD_JSON
+EOF
 
-    # Convert the original config JSON to a block.
-    docker exec cli.divvy.com configtxlator proto_encode --input $CONF_JSON --type common.Config --output $CONF_BLOCK
+    # Convert the original (extracted section) config JSON back to a block.
+    docker exec cli.divvy.com configtxlator proto_encode \
+        --input $CONF_JSON \
+        --type common.Config \
+        --output $CONF_BLOCK
 
     # Convert the modified config JSON to a block.
-    docker exec cli.divvy.com configtxlator proto_encode --input $CONF_MOD_JSON --type common.Config --output $CONF_MOD_BLOCK
+    docker exec cli.divvy.com configtxlator proto_encode \
+        --input $CONF_MOD_JSON \
+        --type common.Config \
+        --output $CONF_MOD_BLOCK
 
     # Generate a delta.
-    docker exec cli.divvy.com configtxlator compute_update --channel_id sys-channel --original $CONF_BLOCK --updated $CONF_MOD_BLOCK --output $CONF_DELTA_BLOCK
+    docker exec cli.divvy.com configtxlator compute_update \
+        --channel_id sys-channel \
+        --original $CONF_BLOCK \
+        --updated $CONF_MOD_BLOCK \
+        --output $CONF_DELTA_BLOCK
 
     # Convert the delta to JSON so we can add a header.
-    docker exec cli.divvy.com configtxlator proto_decode --input $CONF_DELTA_BLOCK --type common.ConfigUpdate | jq . > $CONF_DELTA_JSON
+    docker exec -i \
+        -e CONF_DELTA_BLOCK=$CONF_DELTA_BLOCK \
+        -e CONF_DELTA_JSON=$CONF_DELTA_JSON \
+        cli.divvy.com bash <<EOF
+        configtxlator proto_decode --input $CONF_DELTA_BLOCK --type common.ConfigUpdate | jq . > $CONF_DELTA_JSON
+EOF
 
     # Add the header.
-    docker exec cli.divvy.com echo '{"payload":{"header":{"channel_header":{"channel_id":"sys-channel", "type":2}},"data":{"config_update":'$(cat $CONF_DELTA_JSON)'}}}' | jq . > $PAYLOAD_JSON
+    docker exec -i \
+        -e CONF_DELTA_JSON=$CONF_DELTA_JSON \
+        -e PAYLOAD_JSON=$PAYLOAD_JSON \
+        cli.divvy.com bash -c 'DELTA=$(< $CONF_DELTA_JSON); echo \''{\""payload\"":{\""header\"":{\""channel_header\"":{\""channel_id\"":\""sys-channel\"", \""type\"":2}},\""data\"":{\""config_update\"":$DELTA}}}\'' jq . > $PAYLOAD_JSON'
 
     # Convert the payload to a block.
-    docker exec cli.divvy.com configtxlator proto_encode --input $PAYLOAD_JSON --type common.Envelope --output $PAYLOAD_BLOCK
+    docker exec cli.divvy.com configtxlator proto_encode \
+        --input $PAYLOAD_JSON \
+        --type common.Envelope \
+        --output $PAYLOAD_BLOCK
 
-    # # Make the update.
-    # docker exec cli.divvy.com peer channel update -f $PAYLOAD_BLOCK -c sys-channel -o orderer.divvy.com:7050
+    # Make the update.
+    docker exec cli.divvy.com peer channel update -f $PAYLOAD_BLOCK -c sys-channel -o orderer.divvy.com:7050
 
-    # # Clean up.
-    # for file in $ORG_DEF $CONF_BLOCK $CONF_MOD_BLOCK $CONF_DELTA_BLOCK $CONF_JSON $CONF_MOD_JSON $CONF_DELTA_JSON $PAYLOAD_BLOCK $PAYLOAD_JSON; do
-    #     rm $file
-    # done
+    # Clean up.
+    docker exec cli.divvy.com rm -rf $OUT_DIR
 }
 
 checkPrereqs
