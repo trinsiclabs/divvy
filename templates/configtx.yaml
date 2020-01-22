@@ -18,17 +18,6 @@ Organizations:
         - Host: peer.${NAME}.divvy.com
           Port: ${PEER_PORT}
 
-# Capabilities:
-#   Channel: &ChannelCapabilities
-#     V1_4_2: true
-#     V1_3: false
-#     V1_1: false
-#   Application: &ApplicationCapabilities
-#     V1_4_2: true
-#     V1_3: false
-#     V1_2: false
-#     V1_1: false
-
 Application: &ApplicationDefaults
   Organizations:
   Policies:
@@ -41,8 +30,6 @@ Application: &ApplicationDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-  # Capabilities:
-  #   <<: *ApplicationCapabilities
 
 Channel: &ChannelDefaults
   Policies:
@@ -55,16 +42,12 @@ Channel: &ChannelDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-  # Capabilities:
-  #   <<: *ChannelCapabilities
 
 Profiles:
   ${NAME}-channel:
-    Consortium: ${NAME}-consortium
+    Consortium: Default
     <<: *ChannelDefaults
     Application:
       <<: *ApplicationDefaults
       Organizations:
         - *${MSP_NAME}
-      # Capabilities:
-      #   <<: *ApplicationCapabilities

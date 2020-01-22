@@ -160,6 +160,35 @@ EOF
     docker exec cli.divvy.com rm -rf $OUT_DIR
 }
 
+function createOrgChannel() {
+    local CHANNEL_ID="$2-channel"
+    local CONTAINER="peer.$2.divvy.com"
+
+    # Generate the channel configuration transation.
+    configtxgen \
+        -configPath $1 \
+        -profile $CHANNEL_ID \
+        -outputCreateChannelTx "$1/channel.tx" \
+        -channelID $CHANNEL_ID
+
+    # Create the channel.
+    docker exec \
+        -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
+        $CONTAINER peer channel create \
+        -o orderer.divvy.com:7050 \
+        -c "$CHANNEL_ID" \
+        -f ./org-config/channel.tx
+
+    # Join peer to channel.
+    docker exec \
+        -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
+        $CONTAINER peer channel join \
+        -b "$CHANNEL_ID.block"
+
+    # Check the peer successfully joined the channel.
+    docker exec $CONTAINER peer channel list
+}
+
 checkPrereqs
 
 POSITIONAL=()
@@ -237,19 +266,22 @@ echo "Generating docker compose file..."
 generateDockerCompose $NAME $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/docker-compose.yaml"
 echo
 
+echo "Starting Organisation containers..."
+echo
+docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
+
+sleep 10
+
+echo
+docker ps -a --filter name=".$NAME.divvy.com"
+echo
+
 echo "Adding $NAME to the default consortium..."
 addOrgToConsortium $NAME $MSP_NAME
 echo
 
-# echo "Starting Organisation containers..."
-# docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
-# sleep 10
-
-# if [ $? -ne 0 ]; then
-#     echo "Unable to add Organisation to  network"
-#     exit 1
-# fi
-
-# docker ps -a
+echo "Creating channel for $NAME..."
+createOrgChannel $CONFIG_DIR $NAME
+echo
 
 echo "Done"

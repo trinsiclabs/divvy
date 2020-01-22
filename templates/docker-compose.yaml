@@ -1,7 +1,8 @@
 version: '2'
 
 networks:
-  divvy:
+  divvy_divvy:
+    external: true
 
 services:
   ca.${NAME}.divvy.com:
@@ -18,7 +19,7 @@ services:
       - ./crypto-config/peerOrganizations/${NAME}.divvy.com/ca/:/etc/hyperledger/fabric-ca-server-config
     command: sh -c 'fabric-ca-server start -b admin:adminpw'
     networks:
-      - divvy
+      - divvy_divvy
 
   peer.${NAME}.divvy.com:
     image: hyperledger/fabric-peer:1.4.4
@@ -31,7 +32,7 @@ services:
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=divvy
       - CORE_PEER_ID=peer.${NAME}.divvy.com
       - CORE_PEER_LOCALMSPID=${MSP_NAME}
-      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/peer
       - CORE_PEER_ADDRESS=peer.${NAME}.divvy.com:${PEER_PORT}
       - CORE_PEER_LISTENADDRESS=0.0.0.0:${PEER_PORT}
       - CORE_PEER_PROFILE_ENABLED=true
@@ -43,7 +44,8 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s # Allow more time for chaincode container to build on install.
     volumes:
       - /var/run/:/host/var/run/
-      - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/msp/:/etc/hyperledger/fabric/msp
+      - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/msp/:/etc/hyperledger/fabric/msp/peer
+      - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/users/:/etc/hyperledger/fabric/msp/users
       - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/:/etc/hyperledger/fabric/tls
       - ../../peer.${NAME}.divvy.com/production/:/var/hyperledger/production
       # - ../../peer.${NAME}.divvy.com/config/configtx.yaml:/etc/hyperledger/fabric/configtx.yaml
@@ -51,31 +53,4 @@ services:
     ports:
       - ${PEER_PORT}:${PEER_PORT}
     networks:
-      - divvy
-
-  cli.${NAME}.divvy.com:
-    image: hyperledger/fabric-tools:1.4.4
-    container_name: cli.${NAME}.divvy.com
-    tty: true
-    stdin_open: true
-    environment:
-      - GOPATH=/opt/gopath
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_ID=cli.${NAME}.divvy.com
-      - CORE_PEER_ADDRESS=peer.${NAME}.divvy.com:${PEER_PORT}
-      - CORE_PEER_LOCALMSPID=${MSP_NAME}
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/users/Admin@${NAME}.divvy.com/msp
-      - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/ca.crt
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /bin/bash
-    volumes:
-      - /var/run/:/host/var/run/
-      - ./crypto-config/:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
-    depends_on:
-      - peer.${NAME}.divvy.com
-    networks:
-      - divvy
+      - divvy_divvy
