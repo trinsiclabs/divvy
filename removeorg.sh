@@ -48,12 +48,20 @@ askProceed
 
 CRYPTO_DIR="crypto-config/peerOrganizations/$NAME.divvy.com"
 CONFIG_DIR="org-config/$NAME"
-VOLUME_DIR="peer.$NAME.divvy.com"
 
-for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR"; do
+# TODO: Delete channel
+
+# TODO: Remove from consortium
+
+echo "Stopping $NAME containers..."
+docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
+echo
+
+echo "Removing config files..."
+for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR"; do
     echo "Removing $dir"
     rm -rf $dir
 done
-
 echo
+
 echo "Done"

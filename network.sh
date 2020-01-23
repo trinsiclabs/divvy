@@ -19,6 +19,7 @@ function printHelp() {
     echo "      - 'up' - bring up the network with docker-compose up"
     echo "      - 'down' - clear the network with docker-compose down"
     echo "      - 'restart' - restart the network"
+    echo "      - 'reset' - deletes all config and blocks so you can start fresh"
     echo "      - 'generate' - generate required certificates and genesis block"
     echo "  network.sh -h (print this message)"
 }
@@ -77,9 +78,12 @@ function networkUp() {
         echo
     fi
 
-    # TODO: Include all Org docker-compose.yaml files
-
+    # Bring up the core containers.
     docker-compose -f docker-compose.yaml up -d 2>&1
+
+    # Bring up the Org containers.
+    docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') up -d 2>&1
+
     docker ps -a
 
     if [ $? -ne 0 ]; then
@@ -115,22 +119,24 @@ function removeUnwantedImages() {
 }
 
 function networkDown() {
-    #TODO: Include Organisation docker-compose.yaml files
-    docker-compose -f docker-compose.yaml down --volumes --remove-orphans
+    # Remove Org containers.
+    docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') down --volumes --remove-orphans
+
+    # Remove core containers.
+    docker-compose -f ./docker-compose.yaml down --volumes --remove-orphans
 
     # Don't remove the generated artifacts -- note, the ledgers are always removed
     if [ "$MODE" != "restart" ]; then
-        # Bring down the network, deleting the volumes
-        # Delete any ledger backups
         docker run -v $PWD:/tmp/divvy --rm hyperledger/fabric-tools:1.4.4 rm -Rf /tmp/divvy/ledgers-backup
 
         clearContainers
 
         removeUnwantedImages
-
-        # remove orderer block and other channel configuration transactions and certs
-        rm -rf channel-artifacts/*.block channel-artifacts/*.tx crypto-config
     fi
+}
+
+function networkReset() {
+    rm -rf ./channel-artifacts ./crypto-config ./org-config
 }
 
 MODE=$1
@@ -142,6 +148,8 @@ elif [ "$MODE" == "down" ]; then
     EXPMODE="Stopping"
 elif [ "$MODE" == "restart" ]; then
     EXPMODE="Restarting"
+elif [ "$MODE" == "reset" ]; then
+    EXPMODE="Resetting"
 elif [ "$MODE" == "generate" ]; then
     EXPMODE="Generating certs and genesis block"
 else
@@ -177,6 +185,9 @@ elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
 elif [ "${MODE}" == "restart" ]; then ## Restart the network
     networkDown
     networkUp
+elif [ "${MODE}" == "reset" ]; then ## Reset the network
+    networkDown
+    networkReset
 else
     printHelp
     exit 1

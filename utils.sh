@@ -31,3 +31,7 @@ function generateCryptoMaterial() {
         exit 1
     fi
 }
+
+function orgDockerComposeFiles() {
+    find ./org-config/ -name 'docker-compose.yaml'
+}

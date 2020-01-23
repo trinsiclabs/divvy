@@ -171,6 +171,14 @@ function createOrgChannel() {
         -outputCreateChannelTx "$1/channel.tx" \
         -channelID $CHANNEL_ID
 
+    # Generate the anchor peer transaction.
+    configtxgen \
+        -configPath $1 \
+        -profile $CHANNEL_ID \
+        -outputAnchorPeersUpdate "$1/$2-msp-anchor-$2-channel.tx" \
+        -channelID $CHANNEL_ID \
+        -asOrg "$2-msp"
+
     # Create the channel.
     docker exec \
         -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
@@ -187,6 +195,15 @@ function createOrgChannel() {
 
     # Check the peer successfully joined the channel.
     docker exec $CONTAINER peer channel list
+
+    # Set the anchor peer for the Org on the channel.
+    docker exec \
+        -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
+        $CONTAINER peer channel update \
+        -o orderer.divvy.com:7050 \
+        -c "$CHANNEL_ID" \
+        -f ./org-config/"$2-msp-anchor-$2-channel.tx"
+
 }
 
 checkPrereqs
