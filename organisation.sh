@@ -1,22 +1,31 @@
 #!/bin/bash
 
-export PATH=$PWD/bin:$PATH
+ORG=""
+PEER_PORT=""
+CA_PORT=""
+CHANNEL=""
 
-NAME=""
 MSP_NAME=""
 CONFIG_DIR=""
-PEER_PORT=7051
-CA_PORT=7054
+VOLUME_DIR=""
 
 . utils.sh
 
+export PATH=$PWD/bin:$PATH
+
+# Print the usage message
 function printHelp() {
     echo "Usage: "
-    echo "  createorg.sh --name <org name> [--peerport <peer port>] [--caport <ca port>]"
-    echo "    --name <org name> - organisation name to use"
-    echo "    --peerport <peer port> - port the anchor peer listens on (defaults to 7051)"
-    echo "    --caport <ca port> - port the Orgs CA listens on (defaults to 7054)"
-    echo "  createorg.sh --help (print this message)"
+    echo "  organisation.sh <mode> --org <org name> [--peerport <port>] [--caport <port>] [--channel <channel>]"
+    echo "    <mode> - one of 'create', 'remove', or 'joinchannel'"
+    echo "      - 'create' - bring up the network with docker-compose up"
+    echo "      - 'remove' - clear the network with docker-compose down"
+    echo "      - 'joinchannel' - restart the network"
+    echo "    --org <org name> - name of the Org to use"
+    echo "    --peerport <port> - port the Org peer listens on"
+    echo "    --caport <port> - port the Org CA listens on"
+    echo "    --channel <channel> - name of the channel to join"
+    echo "  organisation.sh --help (print this message)"
 }
 
 function checkPrereqs() {
@@ -31,11 +40,11 @@ function checkPrereqs() {
 }
 
 function generateCryptoConfig() {
-    sed -e "s/\${NAME}/$1/g" ./templates/crypto-config.yaml
+    sed -e "s/\${ORG}/$1/g" ./templates/crypto-config.yaml
 }
 
 function generateNetworkConfig() {
-    sed -e "s/\${NAME}/$1/g" \
+    sed -e "s/\${ORG}/$1/g" \
         -e "s/\${MSP_NAME}/$2/g" \
         -e "s/\${PEER_PORT}/$3/g" \
         ./templates/configtx.yaml
@@ -53,7 +62,7 @@ function generateConnectionProfile {
     local PP=$(oneLinePem "crypto-config/peerOrganizations/$1.divvy.com/tlsca/tlsca.$1.divvy.com-cert.pem")
     local CP=$(oneLinePem "crypto-config/peerOrganizations/$1.divvy.com/ca/ca.$1.divvy.com-cert.pem")
 
-    sed -e "s/\${NAME}/$1/" \
+    sed -e "s/\${ORG}/$1/" \
         -e "s/\${MSP_NAME}/$2/" \
         -e "s/\${PEER_PORT}/$3/" \
         -e "s/\${CA_PORT}/$4/" \
@@ -70,7 +79,7 @@ function generateDockerCompose() {
 
     cd "$CURRENT_DIR"
 
-    sed -e "s/\${NAME}/$1/g" \
+    sed -e "s/\${ORG}/$1/g" \
         -e "s/\${MSP_NAME}/$2/g" \
         -e "s/\${PEER_PORT}/$3/g" \
         -e "s/\${CA_PORT}/$4/g" \
@@ -280,6 +289,14 @@ function createOrgChannel() {
 
 checkPrereqs
 
+MODE=$1
+shift
+
+if [ "$MODE" != "create" ] && [ "$MODE" != "remove" ] && [ "$MODE" != "joinchannel" ]; then
+    printHelp
+    exit 1
+fi
+
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -289,9 +306,9 @@ do
             printHelp
             exit 0
             ;;
-        --name)
-            NAME="$(generateSlug $2)"
-            MSP_NAME="${NAME}-msp"
+        --org)
+            ORG="$(generateSlug $2)"
+            MSP_NAME="${ORG}-msp"
             shift
             shift
             ;;
@@ -305,6 +322,11 @@ do
             shift
             shift
             ;;
+        --channel)
+            CHANNEL=$2
+            shift
+            shift
+            ;;
         *)
             POSITIONAL+=("$1")
             shift
@@ -313,63 +335,94 @@ do
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [ "$NAME" == "" ]; then
+if [ "$ORG" == "" ]; then
     echo "No organisation name specified."
     echo
     printHelp
     exit 1
 fi
 
-CONFIG_DIR="$PWD/org-config/$NAME"
-
-if [ -d $CONFIG_DIR ]; then
-    echo "There is already an organisation called ${NAME}."
-    exit 1
-fi
-
 askProceed
 
-mkdir -p $CONFIG_DIR
+CONFIG_DIR="$PWD/org-config/$ORG"
+VOLUME_DIR="peer.$ORG.divvy.com"
 
-echo "Generating crypto config for ${NAME}..."
-generateCryptoConfig $NAME > "$CONFIG_DIR/crypto-config.yaml"
-echo
+if [ "$MODE" == "create" ]; then
+    if [ "$PEER_PORT" == "" ]; then
+        echo "No peer port specified."
+        echo
+        printHelp
+        exit 1
+    fi
 
-echo "Generating certificates for trust domain:"
-generateCryptoMaterial "$CONFIG_DIR/crypto-config.yaml"
-echo
+    if [ "$CA_PORT" == "" ]; then
+        echo "No CA port specified."
+        echo
+        printHelp
+        exit 1
+    fi
 
-echo "Generating network config..."
-generateNetworkConfig $NAME $MSP_NAME $PEER_PORT > "$CONFIG_DIR/configtx.yaml"
-echo
+    if [ -d $CONFIG_DIR ]; then
+        echo "There is already an organisation called ${ORG}."
+        exit 1
+    fi
 
-echo "Generating org definition..."
-generateOrgDefinition $CONFIG_DIR $MSP_NAME > "$CONFIG_DIR/${NAME}.json"
-echo
+    mkdir -p $CONFIG_DIR
 
-echo "Generating connection profile..."
-generateConnectionProfile $NAME $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/connection-profile.yaml"
-echo
+    echo "Generating crypto config for ${ORG}..."
+    generateCryptoConfig $ORG > "$CONFIG_DIR/crypto-config.yaml"
+    echo
 
-echo "Generating docker compose file..."
-generateDockerCompose $NAME $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/docker-compose.yaml"
-echo
+    echo "Generating certificates for trust domain:"
+    generateCryptoMaterial "$CONFIG_DIR/crypto-config.yaml"
+    echo
 
-echo "Starting Organisation containers..."
-echo
-docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
+    echo "Generating network config..."
+    generateNetworkConfig $ORG $MSP_NAME $PEER_PORT > "$CONFIG_DIR/configtx.yaml"
+    echo
 
-sleep 10
+    echo "Generating Org definition..."
+    generateOrgDefinition $CONFIG_DIR $MSP_NAME > "$CONFIG_DIR/${ORG}.json"
+    echo
 
-echo
-docker ps -a --filter name=".$NAME.divvy.com"
-echo
+    echo "Generating connection profile..."
+    generateConnectionProfile $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/connection-profile.yaml"
+    echo
 
-echo "Adding $NAME to the default consortium..."
-addOrgToConsortium $NAME $MSP_NAME
-echo
+    echo "Generating docker compose file..."
+    generateDockerCompose $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/docker-compose.yaml"
+    echo
 
-createOrgChannel $CONFIG_DIR $NAME
-echo
+    echo "Starting Organisation containers..."
+    echo
+    docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
+
+    sleep 10
+
+    echo
+    docker ps -a --filter name=".$ORG.divvy.com"
+    echo
+
+    echo "Adding $ORG to the default consortium..."
+    addOrgToConsortium $ORG $MSP_NAME
+    echo
+
+    createOrgChannel $CONFIG_DIR $ORG
+    echo
+elif [ "$MODE" == "remove" ]; then
+    # TODO: Delete channel
+    # TODO: Remove from consortium
+
+    echo "Stopping $ORG containers..."
+    docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
+    echo
+
+    echo "Removing files..."
+    for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR"; do
+        echo "Removing $dir"
+        rm -rf $dir
+    done
+    echo
+fi
 
 echo "Done"

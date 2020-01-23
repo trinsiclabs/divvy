@@ -3,7 +3,7 @@ Organizations:
   - &${MSP_NAME}
       Name: ${MSP_NAME}
       ID: ${MSP_NAME}
-      MSPDir: ../../crypto-config/peerOrganizations/${NAME}.divvy.com/msp
+      MSPDir: ../../crypto-config/peerOrganizations/${ORG}.divvy.com/msp
       Policies:
         Readers:
           Type: Signature
@@ -15,7 +15,7 @@ Organizations:
           Type: Signature
           Rule: "OR('${MSP_NAME}.admin')"
       AnchorPeers:
-        - Host: peer.${NAME}.divvy.com
+        - Host: peer.${ORG}.divvy.com
           Port: ${PEER_PORT}
 
 Application: &ApplicationDefaults
@@ -44,7 +44,7 @@ Channel: &ChannelDefaults
       Rule: "MAJORITY Admins"
 
 Profiles:
-  ${NAME}-channel:
+  ${ORG}-channel:
     Consortium: Default
     <<: *ChannelDefaults
     Application:

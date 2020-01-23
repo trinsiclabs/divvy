@@ -1,32 +1,32 @@
 ---
-name: ${NAME}
+name: ${ORG}
 version: 1.0.0
 client:
-  organization: ${NAME}
+  organization: ${ORG}
   connection:
     timeout:
       peer:
         endorser: '300'
 organizations:
-  ${NAME}:
+  ${ORG}:
     mspid: ${MSP_NAME}
     peers:
-      - peer.${NAME}.divvy.com
+      - peer.${ORG}.divvy.com
     certificateAuthorities:
-      - ca.${NAME}.divvy.com
+      - ca.${ORG}.divvy.com
 peers:
-  peer.${NAME}.divvy.com:
+  peer.${ORG}.divvy.com:
     url: grpcs://localhost:${PEER_PORT}
     tlsCACerts:
       pem: |
         ${PEER_PEM}
     grpcOptions:
-      ssl-target-name-override: peer.${NAME}.divvy.com
-      hostnameOverride: peer.${NAME}.divvy.com
+      ssl-target-name-override: peer.${ORG}.divvy.com
+      hostnameOverride: peer.${ORG}.divvy.com
 certificateAuthorities:
-  ca.${NAME}.divvy.com:
+  ca.${ORG}.divvy.com:
     url: https://localhost:${CA_PORT}
-    caName: ca.${NAME}.divvy.com
+    caName: ca.${ORG}.divvy.com
     tlsCACerts:
       pem: |
         ${CA_PEM}

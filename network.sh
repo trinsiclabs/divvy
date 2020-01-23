@@ -2,20 +2,13 @@
 
 export PATH=$PWD/bin:$PATH
 
-# timeout duration - the duration the CLI should wait for a response from
-# another container before giving up
-# CLI_TIMEOUT=10
-
-# default for delay between commands
-# CLI_DELAY=3
-
 . utils.sh
 
 # Print the usage message
 function printHelp() {
     echo "Usage: "
     echo "  network.sh <mode>"
-    echo "    <mode> - one of 'up', 'down', 'restart' or 'generate'"
+    echo "    <mode> - one of 'up', 'down', 'restart', 'reset' or 'generate'"
     echo "      - 'up' - bring up the network with docker-compose up"
     echo "      - 'down' - clear the network with docker-compose down"
     echo "      - 'restart' - restart the network"
@@ -90,12 +83,6 @@ function networkUp() {
         echo "ERROR !!!! Unable to start network"
         exit 1
     fi
-
-    # docker exec cli scripts/test.sh $CLI_DELAY $CLI_TIMEOUT $VERBOSE $NO_CHAINCODE
-    # if [ $? -ne 0 ]; then
-    #     echo "ERROR !!!! Test failed"
-    #     exit 1
-    # fi
 }
 
 function clearContainers() {
