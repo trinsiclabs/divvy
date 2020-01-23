@@ -48,6 +48,7 @@ askProceed
 
 CRYPTO_DIR="crypto-config/peerOrganizations/$NAME.divvy.com"
 CONFIG_DIR="org-config/$NAME"
+VOLUME_DIR="peer.$NAME.divvy.com"
 
 # TODO: Delete channel
 
@@ -58,7 +59,7 @@ docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
 echo
 
 echo "Removing config files..."
-for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR"; do
+for dir in "$CA_DIR" "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR"; do
     echo "Removing $dir"
     rm -rf $dir
 done

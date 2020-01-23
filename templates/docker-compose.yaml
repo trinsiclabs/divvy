@@ -45,8 +45,9 @@ services:
     volumes:
       - /var/run/:/host/var/run/
       - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/msp/:/etc/hyperledger/fabric/msp/peer
-      - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/users/:/etc/hyperledger/fabric/msp/users
       - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/peers/peer.${NAME}.divvy.com/tls/:/etc/hyperledger/fabric/tls
+      - ../../crypto-config/peerOrganizations/${NAME}.divvy.com/users/:/etc/hyperledger/fabric/msp/users
+      - ../../org-config/${NAME}/:/opt/gopath/src/github.com/hyperledger/fabric/peer/org-config
       - ../../peer.${NAME}.divvy.com/production/:/var/hyperledger/production
       # - ../../peer.${NAME}.divvy.com/config/configtx.yaml:/etc/hyperledger/fabric/configtx.yaml
       # - ../../peer.${NAME}.divvy.com/config/connection-profile.yaml:/etc/hyperledger/fabric/connection-profile.yaml

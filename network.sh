@@ -136,7 +136,7 @@ function networkDown() {
 }
 
 function networkReset() {
-    rm -rf ./channel-artifacts ./crypto-config ./org-config
+    rm -rf ./channel-artifacts ./crypto-config ./orderer.divvy.com ./org-config
 }
 
 MODE=$1
@@ -173,6 +173,8 @@ if [ "${MODE}" == "up" ]; then
 elif [ "${MODE}" == "down" ]; then ## Clear the network
     networkDown
 elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
+    mkdir org-config
+
     echo "Generating certificates for orderer..."
     generateCryptoMaterial ./crypto-config.yaml
     echo
