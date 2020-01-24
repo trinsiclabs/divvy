@@ -6,8 +6,9 @@ ORDERER_PEER="orderer.divvy.com:7050"
 ORG=""
 PEER_PORT=""
 CA_PORT=""
-CHANNEL=""
+CHANNEL_OWNER=""
 
+CHANNEL=""
 MSP_NAME=""
 CONFIG_DIR=""
 VOLUME_DIR=""
@@ -15,6 +16,7 @@ CRYPTO_DIR=""
 CLI_OUTPUT_DIR=""
 ORG_CLI=""
 ORG_PEER=""
+CHANNEL_OWNER_CLI=""
 
 . utils.sh
 
@@ -23,7 +25,7 @@ export PATH=$PWD/bin:$PATH
 # Print the usage message
 function printHelp() {
     echo "Usage: "
-    echo "  organisation.sh <mode> --org <org name> [--peerport <port>] [--caport <port>] [--channel <channel>]"
+    echo "  organisation.sh <mode> --org <org name> [--peerport <port>] [--caport <port>] [--channelowner <channel owner>]"
     echo "    <mode> - one of 'create', 'remove', or 'joinchannel'"
     echo "      - 'create' - bring up the network with docker-compose up"
     echo "      - 'remove' - clear the network with docker-compose down"
@@ -31,7 +33,7 @@ function printHelp() {
     echo "    --org <org name> - name of the Org to use"
     echo "    --peerport <port> - port the Org peer listens on"
     echo "    --caport <port> - port the Org CA listens on"
-    echo "    --channel <channel> - name of the channel to join"
+    echo "    --channelowner <channel owner> - Org who owns the channel being joined"
     echo "  organisation.sh --help (print this message)"
 }
 
@@ -58,7 +60,15 @@ function generateNetworkConfig() {
 }
 
 function generateOrgDefinition() {
-    configtxgen -configPath $1 -printOrg $2
+    echo "Generating Org definition..."
+
+    configtxgen -configPath $1 -printOrg $2 > "$1/${ORG}.json"
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    echo
 }
 
 function oneLinePem {
@@ -96,10 +106,10 @@ function generateDockerCompose() {
 
 function cliMkdirp() {
     echo
-    echo "Creating directory $1 on $ORDERER_CLI..."
+    echo "Creating directory $2 on $1..."
     echo
 
-    docker exec $ORDERER_CLI mkdir -p $1
+    docker exec $1 mkdir -p $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -108,10 +118,10 @@ function cliMkdirp() {
 
 function cliRmrf() {
     echo
-    echo "Removing directory $1 on $ORDERER_CLI..."
+    echo "Removing directory $2 on $1..."
     echo
 
-    docker exec $ORDERER_CLI rm -rf $1
+    docker exec $1 rm -rf $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -120,10 +130,10 @@ function cliRmrf() {
 
 function cliFetchLatestChannelConfigBlock() {
     echo
-    echo "Fetching latest config block for channel $1..."
+    echo "Fetching latest config block for channel $2..."
     echo
 
-    docker exec $ORDERER_CLI peer channel fetch config $2 -o $ORDERER_PEER -c $1
+    docker exec $1 peer channel fetch config $3 -o $ORDERER_PEER -c $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -135,11 +145,11 @@ function cliDecodeConfigBlock() {
     echo "Decoding config block..."
     echo
 
-    local type="${3:-common.Block}"
-    local treePath="${4:-.data.data[0].payload.data.config}"
+    local type="${4:-common.Block}"
+    local treePath="${5:-.data.data[0].payload.data.config}"
 
-    docker exec -i $ORDERER_CLI bash <<EOF
-        configtxlator proto_decode --input "$1" --type "$type" | jq "$treePath" > "$2"
+    docker exec -i $1 bash <<EOF
+        configtxlator proto_decode --input "$2" --type "$type" | jq "$treePath" > "$3"
 EOF
 
     if [ $? -ne 0 ]; then
@@ -152,11 +162,11 @@ function cliEncodeConfigJson() {
     echo "Encoding config block..."
     echo
 
-    local type="${3:-common.Config}"
+    local type="${4:-common.Config}"
 
-    docker exec $ORDERER_CLI configtxlator proto_encode \
-        --input $1 \
-        --output $2 \
+    docker exec $1 configtxlator proto_encode \
+        --input $2 \
+        --output $3 \
         --type $type
 
     if [ $? -ne 0 ]; then
@@ -166,14 +176,14 @@ function cliEncodeConfigJson() {
 
 function cliGenerateUpdateBlock() {
     echo
-    echo "Generating config update block for channel $1..."
+    echo "Generating config update block for channel $2..."
     echo
 
-    docker exec $ORDERER_CLI configtxlator compute_update \
-        --channel_id $1 \
-        --original $2 \
-        --updated $3 \
-        --output $4
+    docker exec $1 configtxlator compute_update \
+        --channel_id $2 \
+        --original $3 \
+        --updated $4 \
+        --output $5
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -182,14 +192,14 @@ function cliGenerateUpdateBlock() {
 
 function cliAddConfigUpdateHeader() {
     echo
-    echo "Adding header to config update for channel $1..."
+    echo "Adding header to config update for channel $2..."
     echo
 
     docker exec -i \
-        -e channel=$1 \
-        -e updatesFile=$2 \
-        -e outFile=$3 \
-        $ORDERER_CLI bash -c 'updates=$(< $updatesFile); echo \''{\""payload\"":{\""header\"":{\""channel_header\"":{\""channel_id\"":\""$channel\"", \""type\"":2}},\""data\"":{\""config_update\"":$updates}}}\'' | jq . > $outFile'
+        -e channel=$2 \
+        -e updatesFile=$3 \
+        -e outFile=$4 \
+        $1 bash -c 'updates=$(< $updatesFile); echo \''{\""payload\"":{\""header\"":{\""channel_header\"":{\""channel_id\"":\""$channel\"", \""type\"":2}},\""data\"":{\""config_update\"":$updates}}}\'' | jq . > $outFile'
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -198,10 +208,10 @@ function cliAddConfigUpdateHeader() {
 
 function cliSubmitChannelUpdate() {
     echo
-    echo "Submitting config update for channel $2..."
+    echo "Submitting config update for channel $3..."
     echo
 
-    docker exec $ORDERER_CLI peer channel update -f $1 -c $2 -o $ORDERER_PEER
+    docker exec $1 peer channel update -f $2 -c $3 -o $ORDERER_PEER
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -232,6 +242,16 @@ function cliJoinPeerToChannel() {
     fi
 }
 
+function listPeerChannels() {
+    echo
+    docker exec $1 peer channel list
+    echo
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
 function addOrgToConsortium() {
     local ORG_DEF="./org-config/$1/$1.json"
     local CONF_BLOCK="$CLI_OUTPUT_DIR/config-$1.pb"
@@ -243,20 +263,15 @@ function addOrgToConsortium() {
     local PAYLOAD_BLOCK="$CLI_OUTPUT_DIR/payload-$1.pb"
     local PAYLOAD_JSON="$CLI_OUTPUT_DIR/payload-$1.json"
 
-    cliMkdirp $CLI_OUTPUT_DIR
+    cliMkdirp $ORDERER_CLI $CLI_OUTPUT_DIR
 
-    cliFetchLatestChannelConfigBlock $CHANNEL $CONF_BLOCK
+    cliFetchLatestChannelConfigBlock $ORDERER_CLI $CHANNEL $CONF_BLOCK
 
-    cliDecodeConfigBlock $CONF_BLOCK $CONF_JSON
+    cliDecodeConfigBlock $ORDERER_CLI $CONF_BLOCK $CONF_JSON
 
     # Add the Org definition to config.
-    docker exec -i \
-        -e MSP_NAME=$2 \
-        -e CONF_JSON=$CONF_JSON \
-        -e ORG_DEF=$ORG_DEF \
-        -e CONF_MOD_JSON=$CONF_MOD_JSON \
-        $ORDERER_CLI bash <<EOF
-        jq -s --arg MSP_NAME "$MSP_NAME" '.[0] * {"channel_group":{"groups":{"Consortiums":{"groups": {"Default": {"groups": {"$MSP_NAME":.[1]}, "mod_policy": "/Channel/Orderer/Admins", "policies": {}, "values": {"ChannelCreationPolicy": {"mod_policy": "/Channel/Orderer/Admins","value": {"type": 3,"value": {"rule": "ANY","sub_policy": "Admins"}},"version": "0"}},"version": "0"}}}}}}' $CONF_JSON $ORG_DEF > $CONF_MOD_JSON
+    docker exec -i $ORDERER_CLI bash <<EOF
+        jq -s '.[0] * {"channel_group":{"groups":{"Consortiums":{"groups": {"Default": {"groups": {"$MSP_NAME":.[1]}, "mod_policy": "/Channel/Orderer/Admins", "policies": {}, "values": {"ChannelCreationPolicy": {"mod_policy": "/Channel/Orderer/Admins","value": {"type": 3,"value": {"rule": "ANY","sub_policy": "Admins"}},"version": "0"}},"version": "0"}}}}}}' $CONF_JSON $ORG_DEF > $CONF_MOD_JSON
 EOF
 
     if [ $? -ne 0 ]; then
@@ -264,28 +279,28 @@ EOF
     fi
 
     # Convert the origional (extracted) config to a block, so we can diff it against the updates.
-    cliEncodeConfigJson $CONF_JSON $CONF_BLOCK
+    cliEncodeConfigJson $ORDERER_CLI $CONF_JSON $CONF_BLOCK
 
     # Convert the updated config to a block, so we can diff it against the origional.
-    cliEncodeConfigJson $CONF_MOD_JSON $CONF_MOD_BLOCK
+    cliEncodeConfigJson $ORDERER_CLI $CONF_MOD_JSON $CONF_MOD_BLOCK
 
     # Diff the changes to create an "update" block.
-    cliGenerateUpdateBlock $CHANNEL $CONF_BLOCK $CONF_MOD_BLOCK $CONF_DELTA_BLOCK
+    cliGenerateUpdateBlock $ORDERER_CLI $CHANNEL $CONF_BLOCK $CONF_MOD_BLOCK $CONF_DELTA_BLOCK
 
     # Convert the update block to JSON so we can add a header.
-    cliDecodeConfigBlock $CONF_DELTA_BLOCK $CONF_DELTA_JSON common.ConfigUpdate '.'
+    cliDecodeConfigBlock $ORDERER_CLI $CONF_DELTA_BLOCK $CONF_DELTA_JSON common.ConfigUpdate '.'
 
     # Add the header.
-    cliAddConfigUpdateHeader $CHANNEL $CONF_DELTA_JSON $PAYLOAD_JSON
+    cliAddConfigUpdateHeader $ORDERER_CLI $CHANNEL $CONF_DELTA_JSON $PAYLOAD_JSON
 
     # Convert the payload to a block.
-    cliEncodeConfigJson $PAYLOAD_JSON $PAYLOAD_BLOCK common.Envelope
+    cliEncodeConfigJson $ORDERER_CLI $PAYLOAD_JSON $PAYLOAD_BLOCK common.Envelope
 
     # Make the update.
-    cliSubmitChannelUpdate $PAYLOAD_BLOCK $CHANNEL
+    cliSubmitChannelUpdate $ORDERER_CLI $PAYLOAD_BLOCK $CHANNEL
 
     # Clean up.
-    cliRmrf $CLI_OUTPUT_DIR
+    cliRmrf $ORDERER_CLI $CLI_OUTPUT_DIR
 }
 
 function createOrgChannel() {
@@ -335,12 +350,7 @@ function createOrgChannel() {
     fi
 
     # Check the peer successfully joined the channel.
-    echo
-    docker exec $ORG_PEER peer channel list
-
-    if [ $? -ne 0 ]; then
-        exit 1
-    fi
+    listPeerChannels $ORG_PEER
 
     echo
     echo "Adding anchor peer config to channel..."
@@ -392,8 +402,10 @@ do
             shift
             shift
             ;;
-        --channel)
-            CHANNEL=$2
+        --channelowner)
+            CHANNEL_OWNER=$2
+            CHANNEL_OWNER_CLI="cli.$2.divvy.com"
+            CHANNEL="$2-channel"
             shift
             shift
             ;;
@@ -457,9 +469,7 @@ if [ "$MODE" == "create" ]; then
     generateNetworkConfig $ORG $MSP_NAME $PEER_PORT > "$CONFIG_DIR/configtx.yaml"
     echo
 
-    echo "Generating Org definition..."
-    generateOrgDefinition $CONFIG_DIR $MSP_NAME > "$CONFIG_DIR/${ORG}.json"
-    echo
+    generateOrgDefinition $CONFIG_DIR $MSP_NAME
 
     echo "Generating connection profile..."
     generateConnectionProfile $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/connection-profile.yaml"
@@ -500,8 +510,8 @@ elif [ "$MODE" == "remove" ]; then
     done
     echo
 elif [ "$MODE" == "joinchannel" ]; then
-    if [ "$CHANNEL" == "" ]; then
-        echo "No channel specified."
+    if [ "$CHANNEL_OWNER" == "" ]; then
+        echo "No channel owner specified."
         echo
         printHelp
         exit 1
@@ -518,58 +528,60 @@ elif [ "$MODE" == "joinchannel" ]; then
     configJsonUpdated="$CLI_OUTPUT_DIR/config-$CHANNEL-updated.json"
     payloadBlock="$CLI_OUTPUT_DIR/config-$CHANNEL-payload.pb"
     payloadJson="$CLI_OUTPUT_DIR/config-$CHANNEL-payload.json"
-    orgDefinition="./org-config/$ORG/$ORG.json"
-    channelGenesisBlock="$CHANNEL.block"
+    orgDefinition="$CLI_OUTPUT_DIR/$ORG.json"
+    channelGenesisBlock="$CLI_OUTPUT_DIR/$CHANNEL-genesis.block"
 
-    cliMkdirp $CLI_OUTPUT_DIR
+    cliMkdirp $CHANNEL_OWNER_CLI $CLI_OUTPUT_DIR
 
-    cliFetchLatestChannelConfigBlock $CHANNEL $configBlock
+    generateOrgDefinition $CONFIG_DIR $MSP_NAME
+    docker cp "$CONFIG_DIR/$ORG.json" $CHANNEL_OWNER_CLI:"/opt/gopath/src/github.com/hyperledger/fabric/peer/$orgDefinition"
 
-    cliDecodeConfigBlock $configBlock $configJson
+    cliFetchLatestChannelConfigBlock $CHANNEL_OWNER_CLI $CHANNEL $configBlock
+
+    cliDecodeConfigBlock $CHANNEL_OWNER_CLI $configBlock $configJson
 
     # Add Org to config.
-    docker exec -i \
-        -e mspName=$MSP_NAME \
-        -e configJson=$configJson \
-        -e orgDefinition=$orgDefinition \
-        -e configJsonUpdated=$configJsonUpdated \
-        $ORDERER_CLI bash <<EOF
-        jq -s '.[0] * {"channel_group":{"groups":{"Application":{"groups": {"$mspName":.[1]}}}}}' $configJson $orgDefinition > $configJsonUpdated
+    docker exec -i $CHANNEL_OWNER_CLI bash <<EOF
+        jq -s '.[0] * {"channel_group":{"groups":{"Application":{"groups": {"$MSP_NAME":.[1]}}}}}' $configJson $orgDefinition > $configJsonUpdated
 EOF
 
     if [ $? -ne 0 ]; then
         exit 1
     fi
-set -x
+
     # Convert the origional (extracted) config to a block, so we can diff it against the updates.
-    cliEncodeConfigJson $configJson $configBlock
+    cliEncodeConfigJson $CHANNEL_OWNER_CLI $configJson $configBlock
 
     # Convert the updated config to a block, so we can diff it against the origional.
-    cliEncodeConfigJson $configJsonUpdated $configBlockUpdated
+    cliEncodeConfigJson $CHANNEL_OWNER_CLI $configJsonUpdated $configBlockUpdated
 
     # Diff the changes to create an "update" block.
-    cliGenerateUpdateBlock $CHANNEL $configBlock $configBlockUpdated $payloadBlock
+    cliGenerateUpdateBlock $CHANNEL_OWNER_CLI $CHANNEL $configBlock $configBlockUpdated $payloadBlock
 
     # Convert the update block to JSON so we can add a header.
-    cliDecodeConfigBlock $payloadBlock $payloadJson common.ConfigUpdate '.'
+    cliDecodeConfigBlock $CHANNEL_OWNER_CLI $payloadBlock $payloadJson common.ConfigUpdate '.'
 
     # Add the header.
-    cliAddConfigUpdateHeader $CHANNEL $payloadJson $payloadJson
+    cliAddConfigUpdateHeader $CHANNEL_OWNER_CLI $CHANNEL $payloadJson $payloadJson
 
     # Convert the payload to a block.
-    cliEncodeConfigJson $payloadJson $payloadBlock common.Envelope
+    cliEncodeConfigJson $CHANNEL_OWNER_CLI $payloadJson $payloadBlock common.Envelope
 
     # Submit the block.
-    cliSubmitChannelUpdate $payloadBlock $CHANNEL
-set +x
+    cliSubmitChannelUpdate $CHANNEL_OWNER_CLI $payloadBlock $CHANNEL
+
     # Clean up.
-    cliRmrf $CLI_OUTPUT_DIR
+    cliRmrf $CHANNEL_OWNER_CLI $CLI_OUTPUT_DIR
+
+    cliMkdirp $ORG_CLI $CLI_OUTPUT_DIR
 
     # Fetch the genesis block to start syncing the new org peer's ledger
     cliFetchChannelGenesisBlock $ORG_CLI $CHANNEL $channelGenesisBlock
 
     # Join peer to channel
     cliJoinPeerToChannel $ORG_CLI $CHANNEL $channelGenesisBlock
+
+    listPeerChannels $ORG_CLI
 fi
 
 echo "Done"

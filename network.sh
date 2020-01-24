@@ -44,13 +44,13 @@ function checkPrereqs() {
 }
 
 function generateGenesisBlock() {
-    if [ -d "channel-artifacts" ]; then
-        rm -Rf channel-artifacts
+    if [ -d "orderer.divvy.com" ]; then
+        rm -rf ./orderer.divvy.com
     fi
 
-    mkdir channel-artifacts
+    mkdir ./orderer.divvy.com
 
-    configtxgen -profile Genesis -channelID sys-channel -outputBlock ./channel-artifacts/genesis.block
+    configtxgen -profile Genesis -channelID sys-channel -outputBlock ./orderer.divvy.com/genesis.block
 
     if [ $? -ne 0 ]; then
         echo "Failed to generate orderer genesis block..."
@@ -123,7 +123,7 @@ function networkDown() {
 }
 
 function networkReset() {
-    rm -rf ./channel-artifacts ./crypto-config ./orderer.divvy.com ./org-config
+    rm -rf ./crypto-config ./orderer.divvy.com ./org-config
 }
 
 MODE=$1
@@ -160,8 +160,6 @@ if [ "${MODE}" == "up" ]; then
 elif [ "${MODE}" == "down" ]; then ## Clear the network
     networkDown
 elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
-    mkdir org-config
-
     echo "Generating certificates for orderer..."
     generateCryptoMaterial ./crypto-config.yaml
     echo

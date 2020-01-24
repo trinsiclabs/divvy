@@ -34,8 +34,6 @@ services:
       - 7050:7050
     volumes:
       - ./configtx.yaml:/etc/hyperledger/fabric/configtx.yaml
-      - ./crypto-config/:/etc/hyperledger/fabric/crypto-config
-      - ./channel-artifacts/genesis.block:/var/hyperledger/production/orderer/genesis.block
       - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/:/etc/hyperledger/msp/orderer/msp/
       - ./orderer.divvy.com/:/var/hyperledger/production/orderer
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
