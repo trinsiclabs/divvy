@@ -29,7 +29,10 @@ function printHelp() {
     echo "    <mode> - one of 'create', 'remove', or 'joinchannel'"
     echo "      - 'create' - bring up the network with docker-compose up"
     echo "      - 'remove' - clear the network with docker-compose down"
-    echo "      - 'joinchannel' - restart the network"
+    echo "      - 'joinchannel' - joins an Org peer to a channel"
+    echo "      - 'showchannels' - lists all channels an Org peer has joined"
+    echo "      - 'nodestatus' - shows the status of an Org peer node"
+    echo "      - 'channelinfo' - show blockchain information of an Org channel."
     echo "    --org <org name> - name of the Org to use"
     echo "    --peerport <port> - port the Org peer listens on"
     echo "    --caport <port> - port the Org CA listens on"
@@ -242,6 +245,22 @@ function cliJoinPeerToChannel() {
     fi
 }
 
+function cliPeerNodeStatus() {
+    docker exec $1 peer node status
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
+function cliChannelInfo() {
+    docker exec $1 peer channel getinfo -c $2
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
 function listPeerChannels() {
     echo
     docker exec $1 peer channel list
@@ -372,7 +391,7 @@ checkPrereqs
 MODE=$1
 shift
 
-if [ "$MODE" != "create" ] && [ "$MODE" != "remove" ] && [ "$MODE" != "joinchannel" ]; then
+if [ "$MODE" != "create" ] && [ "$MODE" != "remove" ] && [ "$MODE" != "joinchannel" ] && [ "$MODE" != "showchannels" ] && [ "$MODE" != "nodestatus" ] && [ "$MODE" != "channelinfo" ]; then
     printHelp
     exit 1
 fi
@@ -424,8 +443,6 @@ if [ "$ORG" == "" ]; then
     exit 1
 fi
 
-askProceed
-
 CONFIG_DIR="$PWD/org-config/$ORG"
 VOLUME_DIR="$PWD/peer.$ORG.divvy.com"
 CRYPTO_DIR="$PWD/crypto-config/peerOrganizations/$ORG.divvy.com"
@@ -452,6 +469,8 @@ if [ "$MODE" == "create" ]; then
         echo "There is already an organisation called ${ORG}."
         exit 1
     fi
+
+    askProceed
 
     CHANNEL='sys-channel'
 
@@ -495,7 +514,11 @@ if [ "$MODE" == "create" ]; then
 
     createOrgChannel $CONFIG_DIR $ORG
     echo
+
+    echo "Done"
 elif [ "$MODE" == "remove" ]; then
+    askProceed
+
     # TODO: Delete channel
     # TODO: Remove from consortium
 
@@ -509,6 +532,8 @@ elif [ "$MODE" == "remove" ]; then
         rm -rf $dir
     done
     echo
+
+    echo "Done"
 elif [ "$MODE" == "joinchannel" ]; then
     if [ "$CHANNEL_OWNER" == "" ]; then
         echo "No channel owner specified."
@@ -521,6 +546,8 @@ elif [ "$MODE" == "joinchannel" ]; then
         echo "Invalid org name. Did you spell the org name correctly?"
         exit 1
     fi
+
+    askProceed
 
     configBlock="$CLI_OUTPUT_DIR/config-$CHANNEL.pb"
     configBlockUpdated="$CLI_OUTPUT_DIR/config-$CHANNEL-updated.pb"
@@ -582,6 +609,12 @@ EOF
     cliJoinPeerToChannel $ORG_CLI $CHANNEL $channelGenesisBlock
 
     listPeerChannels $ORG_CLI
-fi
 
-echo "Done"
+    echo "Done"
+elif [ "$MODE" == "showchannels" ]; then
+    listPeerChannels $ORG_CLI
+elif [ "$MODE" == "nodestatus" ]; then
+    cliPeerNodeStatus $ORG_CLI
+elif [ "$MODE" == "channelinfo" ]; then
+    cliChannelInfo $ORG_CLI "$ORG-channel"
+fi
