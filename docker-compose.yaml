@@ -11,13 +11,8 @@ services:
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca.divvy.com
-      # - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.divvy.com-cert.pem
-      # - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/${PRIV_KEY}
     ports:
       - 7054:7054
-    # volumes:
-    #   - ./crypto-config/peerOrganizations/:/etc/hyperledger/fabric-ca-server-config
-    #   - ./ca.divvy.com/:/etc/hyperledger/fabric-ca-server
     command: sh -c 'fabric-ca-server start -b admin:adminpw'
     networks:
       - divvy
@@ -34,13 +29,7 @@ services:
       - ORDERER_GENERAL_GENESISPROFILE=Genesis
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
       - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
-      # - ORDERER_GENERAL_TLS_ENABLED=true
-      # - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/msp/orderer/tls/server.key
-      # - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/msp/orderer/tls/server.crt
-      # - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt]
-      # - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/etc/hyperledger/msp/orderer/tls/server.crt
-      # - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/etc/hyperledger/msp/orderer/tls/server.key
-      # - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_TLS_ENABLED=false
     ports:
       - 7050:7050
     volumes:
@@ -48,7 +37,6 @@ services:
       - ./crypto-config/:/etc/hyperledger/fabric/crypto-config
       - ./channel-artifacts/genesis.block:/var/hyperledger/production/orderer/genesis.block
       - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/:/etc/hyperledger/msp/orderer/msp/
-      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/tls/:/etc/hyperledger/msp/orderer/tls/
       - ./orderer.divvy.com/:/var/hyperledger/production/orderer
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/orderer
     command: orderer
@@ -67,17 +55,13 @@ services:
       - CORE_PEER_ADDRESS=orderer.divvy.com:7050
       - CORE_PEER_LOCALMSPID=OrdererMSP
       - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
-      - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_TLS_ENABLED=false
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: /bin/bash
     volumes:
       - /var/run/:/host/var/run/
       - ./org-config/:/opt/gopath/src/github.com/hyperledger/fabric/peer/org-config
       - ./crypto-config/ordererOrganizations/divvy.com/users/Admin@divvy.com/msp/:/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
-      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/tls/:/opt/gopath/src/github.com/hyperledger/fabric/peer/tls
     depends_on:
       - orderer.divvy.com
     networks:
