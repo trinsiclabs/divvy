@@ -6,6 +6,7 @@ ORDERER_PEER="orderer.divvy.com:7050"
 ORG=""
 PEER_PORT=""
 CA_PORT=""
+CC_PORT=""
 CHANNEL_OWNER=""
 
 CHANNEL=""
@@ -25,18 +26,19 @@ export PATH=$PWD/bin:$PATH
 # Print the usage message
 function printHelp() {
     echo "Usage: "
-    echo "  organisation.sh <mode> --org <org name> [--peerport <port>] [--caport <port>] [--channelowner <channel owner>]"
+    echo "  organisation.sh <mode> --org <org name> [--pport <port>] [--caport <port>] [--ccport] [--channelowner <channel owner>]"
     echo "    <mode> - one of 'create', 'remove', or 'joinchannel'"
     echo "      - 'create' - bring up the network with docker-compose up"
     echo "      - 'remove' - clear the network with docker-compose down"
-    echo "      - 'joinchannel' - joins an Org peer to a channel"
-    echo "      - 'showchannels' - lists all channels an Org peer has joined"
-    echo "      - 'nodestatus' - shows the status of an Org peer node"
-    echo "      - 'channelinfo' - show blockchain information of an Org channel."
-    echo "    --org <org name> - name of the Org to use"
-    echo "    --peerport <port> - port the Org peer listens on"
-    echo "    --caport <port> - port the Org CA listens on"
-    echo "    --channelowner <channel owner> - Org who owns the channel being joined"
+    echo "      - 'joinchannel' - joins an org peer to a channel"
+    echo "      - 'showchannels' - lists all channels an org peer has joined"
+    echo "      - 'nodestatus' - shows the status of an org peer node"
+    echo "      - 'channelinfo' - show blockchain information of an org channel."
+    echo "    --org <org name> - name of the org to use"
+    echo "    --pport <port> - port the org peer listens on"
+    echo "    --caport <port> - port the org CA listens on"
+    echo "    --ccport <port> - port the org peer chaincode listens on"
+    echo "    --channelowner <channel owner> - org who owns the channel being joined"
     echo "  organisation.sh --help (print this message)"
 }
 
@@ -103,6 +105,7 @@ function generateDockerCompose() {
         -e "s/\${MSP_NAME}/$2/g" \
         -e "s/\${PEER_PORT}/$3/g" \
         -e "s/\${CA_PORT}/$4/g" \
+        -e "s/\${CC_PORT}/$5/g" \
         -e "s/\${PRIV_KEY}/$PRIV_KEY/g" \
         ./templates/docker-compose.yaml
 }
@@ -271,6 +274,62 @@ function listPeerChannels() {
     fi
 }
 
+function cliInstallChaincode() {
+    echo
+    echo "Installing chaincode $2 v$3 on peer..."
+    echo
+
+    local path="${4:-chaincode}"
+
+    docker exec $1 peer chaincode install \
+        -n $2 \
+        -v $3 \
+        -p $path \
+        -l node
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
+function cliInstantiateChaincode() {
+    echo
+    echo "Instanciating chaincode $2 v$3 on channel $4..."
+    echo
+
+    docker exec $1 peer chaincode instantiate \
+        -o $ORDERER_PEER \
+        -n $2 \
+        -v $3 \
+        -C $4 \
+        -c $5 \
+        -P $6 \
+        -l node
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    # Wait for instantiation request to be committed.
+    sleep 10
+}
+
+cliInvokeChaincode() {
+    echo
+    echo "Inkoving initial $2 ledger transaction on $3 channel..."
+    echo
+
+    docker exec $1 peer chaincode invoke \
+        -o $ORDERER_PEER \
+        -n $2 \
+        -C $3 \
+        -c $4
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+}
+
 function addOrgToConsortium() {
     local ORG_DEF="./org-config/$1/$1.json"
     local CONF_BLOCK="$CLI_OUTPUT_DIR/config-$1.pb"
@@ -411,13 +470,18 @@ do
             shift
             shift
             ;;
-        --peerport)
+        --pport)
             PEER_PORT=$2
             shift
             shift
             ;;
         --caport)
             CA_PORT=$2
+            shift
+            shift
+            ;;
+        --ccport)
+            CC_PORT=$2
             shift
             shift
             ;;
@@ -465,6 +529,13 @@ if [ "$MODE" == "create" ]; then
         exit 1
     fi
 
+    if [ "$CC_PORT" == "" ]; then
+        echo "No chaincode port specified."
+        echo
+        printHelp
+        exit 1
+    fi
+
     if [ -d $CONFIG_DIR ]; then
         echo "There is already an organisation called ${ORG}."
         exit 1
@@ -495,7 +566,7 @@ if [ "$MODE" == "create" ]; then
     echo
 
     echo "Generating docker compose file..."
-    generateDockerCompose $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/docker-compose.yaml"
+    generateDockerCompose $ORG $MSP_NAME $PEER_PORT $CA_PORT $CC_PORT > "$CONFIG_DIR/docker-compose.yaml"
     echo
 
     echo "Starting Organisation containers..."
@@ -515,12 +586,19 @@ if [ "$MODE" == "create" ]; then
     createOrgChannel $CONFIG_DIR $ORG
     echo
 
+    cliInstallChaincode $ORG_CLI EquityContract 1.0
+
+    cliInstantiateChaincode $ORG_CLI EquityContract 1.0 "$ORG-channel" '{"Args":[]}' "AND('${MSP_NAME}.member')"
+
+    cliInvokeChaincode $ORG_CLI EquityContract "$ORG-channel" '{"function":"populateDefaults","Args":[]}'
+
     echo "Done"
 elif [ "$MODE" == "remove" ]; then
-    askProceed
+    # askProceed
 
-    # TODO: Delete channel
     # TODO: Remove from consortium
+    # TODO: Remove org from all channels
+    # TODO: Remove all other orgs from org channel
 
     echo "Stopping $ORG containers..."
     docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
@@ -575,6 +653,8 @@ EOF
     if [ $? -ne 0 ]; then
         exit 1
     fi
+
+    # TODO: Update the chaincode endorsement policy so the new org can execute chaincode.
 
     # Convert the origional (extracted) config to a block, so we can diff it against the updates.
     cliEncodeConfigJson $CHANNEL_OWNER_CLI $configJson $configBlock
