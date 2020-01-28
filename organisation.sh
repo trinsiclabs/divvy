@@ -586,11 +586,11 @@ if [ "$MODE" == "create" ]; then
     createOrgChannel $CONFIG_DIR $ORG
     echo
 
-    cliInstallChaincode $ORG_CLI EquityContract 1.0
+    cliInstallChaincode $ORG_CLI ShareContract 1.0
 
-    cliInstantiateChaincode $ORG_CLI EquityContract 1.0 "$ORG-channel" '{"Args":[]}' "AND('${MSP_NAME}.member')"
+    cliInstantiateChaincode $ORG_CLI ShareContract 1.0 "$ORG-channel" '{"Args":[]}' "AND('${MSP_NAME}.member')"
 
-    cliInvokeChaincode $ORG_CLI EquityContract "$ORG-channel" '{"function":"populateDefaults","Args":[]}'
+    cliInvokeChaincode $ORG_CLI ShareContract "$ORG-channel" "{\"Args\":[\"com.divvy.share:instantiate\",\"$ORG\"]}"
 
     echo "Done"
 elif [ "$MODE" == "remove" ]; then

@@ -1,3 +1,3 @@
-const EquityContract = require('./EquityContract')
+const ShareContract = require('./lib/share/ShareContract')
 
-module.exports.contracts = [EquityContract];
+module.exports.contracts = [ShareContract];
