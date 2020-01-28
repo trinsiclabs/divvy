@@ -50,7 +50,7 @@ class LedgerItem {
    * @param {string[]} keyParts
    */
   static makeKey(keyParts) {
-    return keyParts.map(part => JSON.stringify(part)).join(':');
+    return keyParts.join(':');
   }
 
   static splitKey(key){

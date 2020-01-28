@@ -314,7 +314,7 @@ function cliInstantiateChaincode() {
     sleep 10
 }
 
-cliInvokeChaincode() {
+function cliInvokeChaincode() {
     echo
     echo "Inkoving initial $2 ledger transaction on $3 channel..."
     echo

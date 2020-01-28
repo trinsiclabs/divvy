@@ -19,7 +19,7 @@ class ShareContract extends Contract {
    */
   async instantiate(ctx, issuer) {
     for (let index = 0; index < 100; index += 1) {
-      await this.issue(ctx, issuer, index + 1, Date.now(), 1.00);
+      await this.issueShare(ctx, issuer, index + 1, Date.now(), 1.00);
     }
   }
 
@@ -34,7 +34,7 @@ class ShareContract extends Contract {
    *
    * @return {Share}
    */
-  async issue(ctx, issuer, shareNumber, issueDateTime, faceValue) {
+  async issueShare(ctx, issuer, shareNumber, issueDateTime, faceValue) {
     const share = Share.createInstance(issuer, shareNumber, issueDateTime, faceValue);
 
     share.setOwner(issuer);
@@ -45,7 +45,7 @@ class ShareContract extends Contract {
   }
 
   /**
-   * Move a share from one org to another.
+   * Change the owner of a share.
    *
    * @param {Context} ctx the transaction context
    * @param {String} issuer share issuer
@@ -55,7 +55,7 @@ class ShareContract extends Contract {
    *
    * @return {Share}
    */
-  async moveShare(ctx, issuer, shareNumber, currentOwner, newOwner) {
+  async changeShareOwner(ctx, issuer, shareNumber, currentOwner, newOwner) {
     const key = Share.makeKey([issuer, shareNumber]);
     const share = await ctx.shareList.getShare(key);
 
@@ -71,8 +71,15 @@ class ShareContract extends Contract {
     return share;
   }
 
-  async query(ctx) {
+  async queryShare(ctx, issuer, shareNumber) {
+    const key = Share.makeKey([issuer, shareNumber]);
+    const share = await ctx.shareList.getShare(key);
 
+    if (share === null) {
+      throw new Error(`Share ${key} does not exist.`);
+    }
+
+    return share;
   }
 }
 
