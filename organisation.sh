@@ -2,6 +2,7 @@
 
 ORDERER_CLI="cli.divvy.com"
 ORDERER_PEER="orderer.divvy.com:7050"
+ORDERER_CA=""
 
 ORG=""
 PEER_PORT=""
@@ -90,7 +91,7 @@ function generateConnectionProfile {
         -e "s/\${CA_PORT}/$4/" \
         -e "s#\${PEER_PEM}#$PP#" \
         -e "s#\${CA_PEM}#$CP#" \
-        ./templates/connection-profile.yaml | sed -e $'s/\\\\n/\\\n        /g'
+        ./templates/connection-profile.json
 }
 
 function generateDockerCompose() {
@@ -107,7 +108,7 @@ function generateDockerCompose() {
         -e "s/\${CA_PORT}/$4/g" \
         -e "s/\${CC_PORT}/$5/g" \
         -e "s/\${PRIV_KEY}/$PRIV_KEY/g" \
-        ./templates/docker-compose.yaml
+        ./templates/docker-compose-org.yaml
 }
 
 function cliMkdirp() {
@@ -139,7 +140,7 @@ function cliFetchLatestChannelConfigBlock() {
     echo "Fetching latest config block for channel $2..."
     echo
 
-    docker exec $1 peer channel fetch config $3 -o $ORDERER_PEER -c $2
+    docker exec $1 peer channel fetch config $3 --tls --cafile $4 -o $ORDERER_PEER -c $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -217,7 +218,7 @@ function cliSubmitChannelUpdate() {
     echo "Submitting config update for channel $3..."
     echo
 
-    docker exec $1 peer channel update -f $2 -c $3 -o $ORDERER_PEER
+    docker exec $1 peer channel update -f $2 -c $3 -o $ORDERER_PEER --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -229,7 +230,7 @@ function cliFetchChannelGenesisBlock() {
     echo "Fetching genesis block for channel $2..."
     echo
 
-    docker exec $1 peer channel fetch 0 $3 -o $ORDERER_PEER -c $2
+    docker exec $1 peer channel fetch 0 $3 -o $ORDERER_PEER -c $2 --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -241,7 +242,7 @@ function cliJoinPeerToChannel() {
     echo "Joining $ORG_PEER to channel $2..."
     echo
 
-    docker exec $1 peer channel join -b $3
+    docker exec $1 peer channel join -b $3 --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -304,7 +305,9 @@ function cliInstantiateChaincode() {
         -C $4 \
         -c $5 \
         -P $6 \
-        -l node
+        -l node \
+        --tls \
+        --cafile $7
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -323,7 +326,9 @@ function cliInvokeChaincode() {
         -o $ORDERER_PEER \
         -n $2 \
         -C $3 \
-        -c $4
+        -c $4 \
+        --tls \
+        --cafile $5
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -340,10 +345,11 @@ function addOrgToConsortium() {
     local CONF_DELTA_JSON="$CLI_OUTPUT_DIR/config-delta-$1.json"
     local PAYLOAD_BLOCK="$CLI_OUTPUT_DIR/payload-$1.pb"
     local PAYLOAD_JSON="$CLI_OUTPUT_DIR/payload-$1.json"
+    local CA_PATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp/tlscacerts/tlsca.divvy.com-cert.pem
 
     cliMkdirp $ORDERER_CLI $CLI_OUTPUT_DIR
 
-    cliFetchLatestChannelConfigBlock $ORDERER_CLI $CHANNEL $CONF_BLOCK
+    cliFetchLatestChannelConfigBlock $ORDERER_CLI $CHANNEL $CONF_BLOCK $CA_PATH
 
     cliDecodeConfigBlock $ORDERER_CLI $CONF_BLOCK $CONF_JSON
 
@@ -375,7 +381,7 @@ EOF
     cliEncodeConfigJson $ORDERER_CLI $PAYLOAD_JSON $PAYLOAD_BLOCK common.Envelope
 
     # Make the update.
-    cliSubmitChannelUpdate $ORDERER_CLI $PAYLOAD_BLOCK $CHANNEL
+    cliSubmitChannelUpdate $ORDERER_CLI $PAYLOAD_BLOCK $CHANNEL $CA_PATH
 
     # Clean up.
     cliRmrf $ORDERER_CLI $CLI_OUTPUT_DIR
@@ -383,6 +389,7 @@ EOF
 
 function createOrgChannel() {
     local orgChannelId="$2-channel"
+    local ordererCaPath=/etc/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem
 
     echo "Generating config transactions..."
 
@@ -409,7 +416,9 @@ function createOrgChannel() {
         $ORG_PEER peer channel create \
         -o $ORDERER_PEER \
         -c "$orgChannelId" \
-        -f ./org-config/channel.tx
+        -f ./org-config/channel.tx \
+        --tls \
+        --cafile $ordererCaPath
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -438,7 +447,9 @@ function createOrgChannel() {
         $ORG_PEER peer channel update \
         -o $ORDERER_PEER \
         -c "$orgChannelId" \
-        -f ./org-config/"$2-msp-anchor-$2-channel.tx"
+        -f ./org-config/"$2-msp-anchor-$2-channel.tx" \
+        --tls \
+        --cafile $ordererCaPath
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -562,7 +573,7 @@ if [ "$MODE" == "create" ]; then
     generateOrgDefinition $CONFIG_DIR $MSP_NAME
 
     echo "Generating connection profile..."
-    generateConnectionProfile $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/connection-profile.yaml"
+    generateConnectionProfile $ORG $MSP_NAME $PEER_PORT $CA_PORT > "$CONFIG_DIR/connection-profile.json"
     echo
 
     echo "Generating docker compose file..."
@@ -588,9 +599,9 @@ if [ "$MODE" == "create" ]; then
 
     cliInstallChaincode $ORG_CLI ShareContract 1.0
 
-    cliInstantiateChaincode $ORG_CLI ShareContract 1.0 "$ORG-channel" '{"Args":[]}' "AND('${MSP_NAME}.member')"
+    cliInstantiateChaincode $ORG_CLI ShareContract 1.0 "$ORG-channel" '{"Args":[]}' "AND('${MSP_NAME}.member')" "/opt/gopath/src/github.com/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem"
 
-    cliInvokeChaincode $ORG_CLI ShareContract "$ORG-channel" "{\"Args\":[\"com.divvy.share:instantiate\",\"$ORG\"]}"
+    cliInvokeChaincode $ORG_CLI ShareContract "$ORG-channel" "{\"Args\":[\"com.divvy.share:instantiate\",\"$ORG\"]}" "/opt/gopath/src/github.com/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem"
 
     echo "Done"
 elif [ "$MODE" == "remove" ]; then
@@ -635,13 +646,14 @@ elif [ "$MODE" == "joinchannel" ]; then
     payloadJson="$CLI_OUTPUT_DIR/config-$CHANNEL-payload.json"
     orgDefinition="$CLI_OUTPUT_DIR/$ORG.json"
     channelGenesisBlock="$CLI_OUTPUT_DIR/$CHANNEL-genesis.block"
+    caPath="/opt/gopath/src/github.com/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem"
 
     cliMkdirp $CHANNEL_OWNER_CLI $CLI_OUTPUT_DIR
 
     generateOrgDefinition $CONFIG_DIR $MSP_NAME
     docker cp "$CONFIG_DIR/$ORG.json" $CHANNEL_OWNER_CLI:"/opt/gopath/src/github.com/hyperledger/fabric/peer/$orgDefinition"
 
-    cliFetchLatestChannelConfigBlock $CHANNEL_OWNER_CLI $CHANNEL $configBlock
+    cliFetchLatestChannelConfigBlock $CHANNEL_OWNER_CLI $CHANNEL $configBlock $caPath
 
     cliDecodeConfigBlock $CHANNEL_OWNER_CLI $configBlock $configJson
 
@@ -675,7 +687,7 @@ EOF
     cliEncodeConfigJson $CHANNEL_OWNER_CLI $payloadJson $payloadBlock common.Envelope
 
     # Submit the block.
-    cliSubmitChannelUpdate $CHANNEL_OWNER_CLI $payloadBlock $CHANNEL
+    cliSubmitChannelUpdate $CHANNEL_OWNER_CLI $payloadBlock $CHANNEL $caPath
 
     # Clean up.
     cliRmrf $CHANNEL_OWNER_CLI $CLI_OUTPUT_DIR
@@ -683,10 +695,10 @@ EOF
     cliMkdirp $ORG_CLI $CLI_OUTPUT_DIR
 
     # Fetch the genesis block to start syncing the new org peer's ledger
-    cliFetchChannelGenesisBlock $ORG_CLI $CHANNEL $channelGenesisBlock
+    cliFetchChannelGenesisBlock $ORG_CLI $CHANNEL $channelGenesisBlock $caPath
 
     # Join peer to channel
-    cliJoinPeerToChannel $ORG_CLI $CHANNEL $channelGenesisBlock
+    cliJoinPeerToChannel $ORG_CLI $CHANNEL $channelGenesisBlock $caPath $caPath
 
     listPeerChannels $ORG_CLI
 
