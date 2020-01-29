@@ -2,6 +2,7 @@
 /ca.divvy.com
 /config
 /crypto-config
+/docker-compose.yaml
 node_modules
 /orderer.*
 /org-config
