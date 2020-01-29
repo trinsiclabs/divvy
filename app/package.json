@@ -1,0 +1,16 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "engines": {
+    "node": ">=8.4.0",
+    "npm": ">=5.3.0"
+  },
+  "engineStrict": true,
+  "main": "index.js",
+  "dependencies": {
+    "fabric-ca-client": "^1.4.0",
+    "fabric-network": "^1.4.0",
+    "yargs": "^15.1.0"
+  }
+}
