@@ -13,7 +13,7 @@ up and running.
 You need these things installed to run the platform.
 
 * [Docker](https://www.docker.com/)
-* [Node.js](nodejs.org) v10.x.x
+* [Node.js v10.18.1](https://nodejs.org/dist/v10.18.1/)
 
 ### Platform components
 
