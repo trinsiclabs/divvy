@@ -24,7 +24,7 @@
   },
   "peers": {
     "peer.${ORG}.divvy.com": {
-      "url": "grpcs://localhost:${PEER_PORT}",
+      "url": "grpcs://peer.${ORG}.divvy.com:${PEER_PORT}",
       "tlsCACerts": {
         "pem": "${PEER_PEM}"
       },
@@ -36,7 +36,7 @@
   },
   "certificateAuthorities": {
     "ca.${ORG}.divvy.com": {
-      "url": "https://localhost:${CA_PORT}",
+      "url": "https://ca.${ORG}.divvy.com:${CA_PORT}",
       "caName": "ca.${ORG}.divvy.com",
       "tlsCACerts": {
         "pem": "${CA_PEM}"

@@ -6,7 +6,7 @@ function getConnectionProfilePath(org) {
 }
 
 function getWalletPath(org) {
-  return path.resolve(__dirname, '..', 'wallet', org);
+  return path.resolve(__dirname, '..', '..', 'wallet', org);
 }
 
 function getWallet(org) {

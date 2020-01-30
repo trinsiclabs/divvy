@@ -616,7 +616,7 @@ elif [ "$MODE" == "remove" ]; then
     echo
 
     echo "Removing files..."
-    for dir in "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR"; do
+    for dir in "$CRYPTO_DIR" "$CONFIG_DIR" "$VOLUME_DIR" "../api/wallet/${ORG}"; do
         echo "Removing $dir"
         rm -rf $dir
     done

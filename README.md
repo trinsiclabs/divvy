@@ -29,19 +29,23 @@ For more info, see the [API docs](./api/README.md).
 
 ### Bootstrap the network
 
-From the `network` directory, install the Docker images and binaries:
+From the `network` directory:
 
 ```
 $ ./bootstrap.sh
 ```
 
+This installs the required docker images and Fabric binaries.
+
 ### Prepare the chaincode
 
-From the `chaincode` directory, install the dependencies:
+From the `chaincode` directory:
 
 ```
 $ npm install
 ```
+
+This installs the JavaScript dependencies required to run the chaincode.
 
 ### Bring the network up
 
@@ -51,7 +55,7 @@ From the `network` directory:
 $ ./network.sh up
 ```
 
-For more info on the `network` script, see the [network docs](./network/README.md).
+This brings up a skeleton network consisting of an order and CA.
 
 ### Populate the network
 
@@ -67,8 +71,6 @@ Join org1 to the org2 channel:
 ```
 $ ./organisation.sh joinchannel --org org1 --channelowner org2
 ```
-
-For more info on the `organisation` script, see the [network docs](./network/README.md).
 
 ### Make a trade
 

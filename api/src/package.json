@@ -8,7 +8,11 @@
   },
   "engineStrict": true,
   "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
+    "@hapi/hapi": "^19.0.5",
     "fabric-ca-client": "^1.4.0",
     "fabric-network": "^1.4.0",
     "yargs": "^15.1.0"
