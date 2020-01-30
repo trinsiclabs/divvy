@@ -15,7 +15,9 @@ You need these things installed to run the platform.
 * [Docker](https://www.docker.com/)
 * [Node.js](nodejs.org) v10.x.x
 
-While those are downloading, here's a quick introduction to the
+### Platform components
+
+While things are downloading, here's a quick introduction to the
 various platform components.
 
 #### Network
