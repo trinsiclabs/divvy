@@ -1,6 +1,6 @@
-const LedgerItem = require('../ledger-api/LedgerItem');
+const StateItem = require('../../state-api/StateItem');
 
-class Share extends LedgerItem {
+class Share extends StateItem {
   static fromBuffer(buffer) {
     return Share.deserialize(buffer);
   }
@@ -11,7 +11,7 @@ class Share extends LedgerItem {
    * @param {Buffer} data to form back into the object
    */
   static deserialize(data) {
-    return LedgerItem.deserializeClass(data, Share);
+    return StateItem.deserializeClass(data, Share);
   }
 
   /**

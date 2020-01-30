@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const FabricCAServices = require('fabric-ca-client');
-const { Gateway, FileSystemWallet, X509WalletMixin } = require('fabric-network');
+const { Gateway, X509WalletMixin } = require('fabric-network');
 const fs = require('fs');
-const path = require('path');
+const { getConnectionProfilePath, getWallet } = require ('./utils');
 
 require('yargs')
   .usage('Usage: $0 <command> [options]')
@@ -25,18 +25,6 @@ require('yargs')
   )
   .help('help')
   .argv;
-
-function getConnectionProfilePath(org) {
-  return path.resolve(__dirname, '..', '..', 'org-config', org, 'connection-profile.json');
-}
-
-function getWalletPath(org) {
-  return path.resolve(__dirname, '..', 'wallet', org);
-}
-
-function getWallet(org) {
-  return new FileSystemWallet(getWalletPath(org));
-}
 
 /**
  * When we created the organisation, an admin user — literally called admin —

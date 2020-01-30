@@ -1,29 +1,103 @@
-# divvy
+# Divvy
 
 Micro-equity platform built on
 [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric)
 
 ## Getting started
 
-1. Install [Docker](https://www.docker.com/)
-2. Install [Node.js](nodejs.org) v10.x.x
-3. Install the Docker images and binaries: `$ ./bootstrap.sh`
-4. Install the chaincode dependencies (from `./chaincode`): `$ npm install`
-5. Bring the network up: `$ ./network up`
+There are a few things to cover, so allow yourself an hour to get
+up and running.
 
-You should now have a running network consisting of a CA, Orderer Org with a
-solo peer, and a CLI container.
+### Install the prerequisites
 
-## Network management
+* [Docker](https://www.docker.com/)
+* [Node.js](nodejs.org) v10.x.x
 
-There are two scripts used to manage the Fabric network.
+Here's a quick introduction to the various platform components.
 
-### network.sh
+#### Network
 
-Used for managing the network, bringing it up and down.
-For more info try `$ ./network.sh --help`
+For more info, see the [network docs](./network/README.md).
 
-### organisation.sh
+#### Chaincode
 
-Used for organisation operation such as creating orgs and joining channels.
-For more info try `$ ./organisation.sh --help`
+For more info, see the [chaincode docs](./chaincode/README.md).
+
+#### API
+
+For more info, see the [API docs](./api/README.md).
+
+### Bootstrap the network
+
+From the `network` directory, install the Docker images and binaries:
+
+```
+$ ./bootstrap.sh
+```
+
+### Prepare the chaincode
+
+From the `chaincode` directory, install the dependencies:
+
+```
+$ npm install
+```
+
+### Bring the network up
+
+From the `network` directory:
+
+```
+$ ./network.sh up
+```
+
+For more info on the `network` script, see the [network docs](./network/README.md).
+
+### Populate the network
+
+Add a couple of organisations to the network:
+
+```
+$ ./organisation.sh create --org org1 --pport 8051 --ccport 8052 --caport 8053
+$ ./organisation.sh create --org org2 --pport 9051 --ccport 9052 --caport 9053
+```
+
+Join org1 to the org2 channel:
+
+```
+$ ./organisation.sh joinchannel --org org1 --channelowner org2
+```
+
+For more info on the `organisation` script, see the [network docs](./network/README.md).
+
+### Make a trade
+
+Log into the org1 cli container:
+
+```
+docker exec -it cli.org1.divvy.com bash
+```
+
+See the current height and hash of the org1 blockchain:
+
+```
+peer channel getinfo -c org1-channel
+```
+
+Transfer ownership of a share from org1 to org2:
+
+```
+peer chaincode invoke -C org1-channel -n share -c '{"Args":["com.divvy.share:changeShareOwner","org1","1","org1","org2"]}' --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem
+```
+
+See the new height and hash of the org1 blockchain:
+
+```
+peer channel getinfo -c org1-channel
+```
+
+Verify the share has changed ownership:
+
+```
+peer chaincode query -C org1-channel -n share -c '{"Args":["com.divvy.share:queryShare","org1","1"]}'
+```

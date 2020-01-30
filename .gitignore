@@ -1,10 +1,1 @@
-/app/wallet/
-/bin
-/ca.divvy.com
-/config
-/crypto-config
-/docker-compose.yaml
-node_modules
-/orderer.*
-/org-config
-/peer.*
+node_modules/

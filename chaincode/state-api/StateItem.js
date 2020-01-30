@@ -1,4 +1,4 @@
-class LedgerItem {
+class StateItem {
   /**
    * Convert object to buffer containing JSON data serialisation
    * Typically used before putState() ledger API.
@@ -57,9 +57,9 @@ class LedgerItem {
     return key.split(':');
   }
 
-  constructor(ledgerItemClass, keyParts) {
-    this.class = ledgerItemClass;
-    this.key = LedgerItem.makeKey(keyParts);
+  constructor(StateItemClass, keyParts) {
+    this.class = StateItemClass;
+    this.key = StateItem.makeKey(keyParts);
   }
 
   getClass() {
@@ -71,12 +71,12 @@ class LedgerItem {
   }
 
   getSplitKey(){
-    return LedgerItem.splitKey(this.key);
+    return StateItem.splitKey(this.key);
   }
 
   serialize() {
-    return LedgerItem.serialize(this);
+    return StateItem.serialize(this);
   }
 }
 
-module.exports = LedgerItem;
+module.exports = StateItem;

@@ -1,22 +1,22 @@
-const LedgerItemList = require('../ledger-api/LedgerItemList');
+const StateItemList = require('../../state-api/StateItemList');
 const Share = require('./Share');
 
-class ShareList extends LedgerItemList {
+class ShareList extends StateItemList {
   constructor(ctx) {
     super(ctx, 'com.divvy.sharelist');
     this.use(Share);
   }
 
   async addShare(share) {
-    return this.addLedgerItem(share);
+    return this.addStateItem(share);
   }
 
   async getShare(key) {
-    return this.getLedgerItem(key);
+    return this.getStateItem(key);
   }
 
   async updateShare(share) {
-    return this.updateLedgerItem(share);
+    return this.updateStateItem(share);
   }
 }
 
