@@ -10,24 +10,33 @@ up and running.
 
 ### Install the prerequisites
 
+You need these things installed to run the platform.
+
 * [Docker](https://www.docker.com/)
 * [Node.js](nodejs.org) v10.x.x
 
-Here's a quick introduction to the various platform components.
+While those are downloading, here's a quick introduction to the
+various platform components.
 
 #### Network
 
-For more info, see the [network docs](./network/README.md).
+Hyperledger Fabric network with configuration and scripts living in
+the `network` directory. This is the core platform component.
 
 #### Chaincode
 
-For more info, see the [chaincode docs](./chaincode/README.md).
+Chaincode is used by network peers to query and update ledger state.
+It lives in the `chaincode` directory.
 
-#### API
+#### API (not working yet)
 
-For more info, see the [API docs](./api/README.md).
+The API component connects client apps to the network and lives in
+the `api` directory.
 
 ### Bootstrap the network
+
+Once you have installed the prerequisites you're ready to
+bootstrap the network. This only needs to be done once.
 
 From the `network` directory:
 
@@ -35,7 +44,7 @@ From the `network` directory:
 $ ./bootstrap.sh
 ```
 
-This installs the required docker images and Fabric binaries.
+You should now have the required docker images and Fabric binaries installed.
 
 ### Prepare the chaincode
 
@@ -45,7 +54,7 @@ From the `chaincode` directory:
 $ npm install
 ```
 
-This installs the JavaScript dependencies required to run the chaincode.
+This installs the JavaScript dependencies required to run chaincode.
 
 ### Bring the network up
 
