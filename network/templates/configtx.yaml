@@ -7,10 +7,10 @@ Organizations:
       Policies:
         Readers:
           Type: Signature
-          Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.peer', '${MSP_NAME}.client')"
+          Rule: "OR('${MSP_NAME}.member')"
         Writers:
           Type: Signature
-          Rule: "OR('${MSP_NAME}.admin', '${MSP_NAME}.client')"
+          Rule: "OR('${MSP_NAME}.member')"
         Admins:
           Type: Signature
           Rule: "OR('${MSP_NAME}.admin')"

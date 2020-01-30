@@ -15,20 +15,6 @@ Organizations:
           Type: Signature
           Rule: "OR('OrdererMSP.member')"
 
-# Capabilities:
-#   Channel: &ChannelCapabilities
-#     V1_4_2: true
-#     V1_3: false
-#     V1_1: false
-#   Orderer: &OrdererCapabilities
-#     V1_4_2: true
-#     V1_1: false
-#   Application: &ApplicationCapabilities
-#     V1_4_2: true
-#     V1_3: false
-#     V1_2: false
-#     V1_1: false
-
 Application: &ApplicationDefaults
   Organizations:
   Policies: &ApplicationDefaultPolicies
@@ -41,8 +27,6 @@ Application: &ApplicationDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-  # Capabilities:
-  #     <<: *ApplicationCapabilities
 
 Orderer: &OrdererDefaults
   OrdererType: solo
@@ -68,8 +52,6 @@ Orderer: &OrdererDefaults
     BlockValidation:
       Type: ImplicitMeta
       Rule: "ANY Writers"
-  # Capabilities:
-  #   <<: *OrdererCapabilities
 
 Channel: &ChannelDefaults
   Policies:
@@ -82,8 +64,6 @@ Channel: &ChannelDefaults
     Admins:
       Type: ImplicitMeta
       Rule: "MAJORITY Admins"
-  # Capabilities:
-  #   <<: *ChannelCapabilities
 
 Profiles:
   Genesis:
@@ -92,8 +72,6 @@ Profiles:
       <<: *OrdererDefaults
       Organizations:
         - *OrdererOrg
-      # Capabilities:
-      #   <<: *OrdererCapabilities
     Consortiums:
       Default:
         Organizations:

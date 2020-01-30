@@ -58,12 +58,27 @@ function generateGenesisBlock() {
     fi
 }
 
+function generateDockerCompose() {
+    local currentDir=$PWD
+
+    cd "crypto-config/ordererOrganizations/divvy.com/ca/"
+    local privKey=$(ls *_sk)
+
+    cd "$currentDir"
+
+    sed -e "s/\${PRIV_KEY}/$privKey/g" ./templates/docker-compose-net.yaml
+}
+
 function networkUp() {
     checkPrereqs
 
     if [ ! -d "crypto-config" ]; then
         echo "Generating certificates for orderer..."
         generateCryptoMaterial ./crypto-config.yaml
+        echo
+
+        echo "Generating docker compose file..."
+        generateDockerCompose > ./docker-compose.yaml
         echo
 
         echo "Generating genesis block..."
@@ -123,7 +138,7 @@ function networkDown() {
 }
 
 function networkReset() {
-    rm -rf ./crypto-config ./orderer.divvy.com ./org-config
+    rm -rf ./crypto-config ./orderer.divvy.com ./org-config ./docker-compose.yaml
 }
 
 MODE=$1
@@ -162,6 +177,10 @@ elif [ "${MODE}" == "down" ]; then ## Clear the network
 elif [ "${MODE}" == "generate" ]; then ## Generate Artifacts
     echo "Generating certificates for orderer..."
     generateCryptoMaterial ./crypto-config.yaml
+    echo
+
+    echo "Generating docker compose file..."
+    generateDockerCompose > ./docker-compose.yaml
     echo
 
     echo "Generating genesis block..."

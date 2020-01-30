@@ -1,8 +1,1 @@
-/bin
-/ca.divvy.com
-/config
-/crypto-config
-node_modules
-/orderer.*
-/org-config
-/peer.*
+node_modules/
