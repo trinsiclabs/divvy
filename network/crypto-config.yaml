@@ -1,0 +1,6 @@
+OrdererOrgs:
+  - Name: OrdererOrg
+    Domain: divvy.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
