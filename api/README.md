@@ -37,8 +37,8 @@ $ docker-compose up -d
 This will install the required JavaScript dependencies and start the service.
 
 Admin identities are generated automatically when organisations are created,
-so you can probably skip this step. But if you're doing something weird you
-might need to create one, or regenerate an existing one:
+so you can probably skip this step. But if you're doing something weird, you
+might need to create one or regenerate an existing one:
 
 ```
 $ docker exec api.divvy.com node ./lib/security.js enrolladmin <org>
