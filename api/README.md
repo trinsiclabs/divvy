@@ -2,7 +2,7 @@
 
 RESTful service which connects the client app to the network.
 
-There are there core functions the service provides:
+There are three core functions the service provides:
 
 1. Identity generation
 2. Querying the ledger
