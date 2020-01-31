@@ -17,7 +17,7 @@ services:
     ports:
       - ${CA_PORT}:7054
     volumes:
-      - ./crypto-config/peerOrganizations/${ORG}.divvy.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ../../crypto-config/peerOrganizations/${ORG}.divvy.com/ca/:/etc/hyperledger/fabric-ca-server-config
     command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.${ORG}.divvy.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/${PRIV_KEY} -b admin:adminpw'
     networks:
       - network_divvy
@@ -69,15 +69,14 @@ services:
     image: hyperledger/fabric-tools:1.4.4
     tty: true
     environment:
+      - SYS_CHANNEL=sys-channel
       - GOPATH=/opt/gopath
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - FABRIC_LOGGING_SPEC=INFO
-      - CORE_CHAINCODE_LOGGING_LEVEL=DEBUG
       - CORE_PEER_ID=cli.${ORG}.divvy.com
       - CORE_PEER_ADDRESS=peer.${ORG}.divvy.com:${PEER_PORT}
       - CORE_PEER_LOCALMSPID=${MSP_NAME}
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
-      - CORE_PEER_CHAINCODELISTENADDRESS=peer.${ORG}.divvy.com:${CC_PORT}
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/msp
       - CORE_PEER_TLS_ENABLED=true
       - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/server.crt
       - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/server.key
@@ -86,8 +85,8 @@ services:
     command: /bin/bash
     volumes:
         - /var/run/:/host/var/run/
+        - ../../crypto-config/peerOrganizations/${ORG}.divvy.com/users/Admin@${ORG}.divvy.com/msp/:/opt/gopath/src/github.com/hyperledger/fabric/msp
         - ../../crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/:/opt/gopath/src/github.com/hyperledger/fabric/orderer/msp
-        - ../../crypto-config/peerOrganizations/${ORG}.divvy.com/users/Admin@${ORG}.divvy.com/msp/:/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
         - ../../crypto-config/peerOrganizations/${ORG}.divvy.com/peers/peer.${ORG}.divvy.com/tls/:/opt/gopath/src/github.com/hyperledger/fabric/tls
         - ../../../chaincode/:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
     depends_on:

@@ -26,7 +26,7 @@ async function main() {
 
     // Create a new gateway for connecting to our peer node.
     const gateway = new Gateway();
-    await gateway.connect(connectionProfilePath, { wallet, identity: argv.u, discovery: { enabled: true, asLocalhost: true } });
+    await gateway.connect(connectionProfilePath, { wallet, identity: argv.u, discovery: { enabled: true, asLocalhost: false } });
 
     // Get the network (channel) our contract is deployed to.
     const network = await gateway.getNetwork(argv.c);
@@ -38,8 +38,8 @@ async function main() {
     // queryCar transaction - requires 1 argument, ex: ('queryCar', 'CAR4')
     // queryAllCars transaction - requires no arguments, ex: ('queryAllCars')
     const args = argv.a ? JSON.parse(argv.a) : [];
-    const result = await contract.evaluateTransaction(argv.m, args);
-    console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
+    const result = await contract.evaluateTransaction(argv.m, ...args);
+    console.log(result.toString());
   } catch (error) {
     console.error(`Failed to evaluate transaction: ${error}`);
     process.exit(1);

@@ -36,7 +36,7 @@
   },
   "certificateAuthorities": {
     "ca.${ORG}.divvy.com": {
-      "url": "https://ca.${ORG}.divvy.com:${CA_PORT}",
+      "url": "https://ca.${ORG}.divvy.com:7054",
       "caName": "ca.${ORG}.divvy.com",
       "tlsCACerts": {
         "pem": "${CA_PEM}"

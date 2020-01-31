@@ -2,7 +2,8 @@
 
 ORDERER_CLI="cli.divvy.com"
 ORDERER_PEER="orderer.divvy.com:7050"
-ORDERER_CA=""
+
+API_CONTAINER="api.divvy.com"
 
 ORG=""
 PEER_PORT=""
@@ -345,7 +346,7 @@ function addOrgToConsortium() {
     local CONF_DELTA_JSON="$CLI_OUTPUT_DIR/config-delta-$1.json"
     local PAYLOAD_BLOCK="$CLI_OUTPUT_DIR/payload-$1.pb"
     local PAYLOAD_JSON="$CLI_OUTPUT_DIR/payload-$1.json"
-    local CA_PATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp/tlscacerts/tlsca.divvy.com-cert.pem
+    local CA_PATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/msp/tlscacerts/tlsca.divvy.com-cert.pem
 
     cliMkdirp $ORDERER_CLI $CLI_OUTPUT_DIR
 
@@ -590,6 +591,14 @@ if [ "$MODE" == "create" ]; then
     docker ps -a --filter name=".$ORG.divvy.com"
     echo
 
+    echo "Generating wallet..."
+    docker exec $API_CONTAINER node ./lib/security.js enrolladmin ${ORG}
+    echo
+
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
     echo "Adding $ORG to the default consortium..."
     addOrgToConsortium $ORG $MSP_NAME
     echo
@@ -605,7 +614,7 @@ if [ "$MODE" == "create" ]; then
 
     echo "Done"
 elif [ "$MODE" == "remove" ]; then
-    # askProceed
+    askProceed
 
     # TODO: Remove from consortium
     # TODO: Remove org from all channels

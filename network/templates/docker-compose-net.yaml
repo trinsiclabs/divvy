@@ -33,20 +33,19 @@ services:
       - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/production/orderer/genesis.block
       - ORDERER_GENERAL_GENESISPROFILE=Genesis
       - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_LOCALMSPDIR=/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/msp/
       - ORDERER_GENERAL_TLS_ENABLED=true
-      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/opt/gopath/src/github.com/hyperledger/fabric/crypto-config/orderers/orderer.divvy.com/tls/ca.crt]
     ports:
       - 7050:7050
     volumes:
       - ./configtx.yaml:/etc/hyperledger/fabric/configtx.yaml
-      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/msp/:/var/hyperledger/orderer/msp
-      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/tls/:/var/hyperledger/orderer/tls
+      - ./crypto-config/ordererOrganizations/divvy.com/:/opt/gopath/src/github.com/hyperledger/fabric/crypto-config
       - ./orderer.divvy.com/:/var/hyperledger/production/orderer
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: orderer
@@ -64,18 +63,17 @@ services:
       - CORE_PEER_ID=cli.divvy.com
       - CORE_PEER_ADDRESS=orderer.divvy.com:7050
       - CORE_PEER_LOCALMSPID=OrdererMSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/users/Admin@divvy.com/msp
       - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/orderers/orderer.divvy.com/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/orderers/orderer.divvy.com/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/orderers/orderer.divvy.com/tls/ca.crt
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: /bin/bash
     volumes:
       - /var/run/:/host/var/run/
+      - ./crypto-config/ordererOrganizations/divvy.com/:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config
       - ./org-config/:/opt/gopath/src/github.com/hyperledger/fabric/peer/org-config
-      - ./crypto-config/ordererOrganizations/divvy.com/users/Admin@divvy.com/msp/:/opt/gopath/src/github.com/hyperledger/fabric/peer/msp
-      - ./crypto-config/ordererOrganizations/divvy.com/orderers/orderer.divvy.com/tls/:/opt/gopath/src/github.com/hyperledger/fabric/tls
     depends_on:
       - orderer.divvy.com
     networks:
