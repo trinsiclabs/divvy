@@ -12,7 +12,8 @@ up and running.
 
 You need these things installed to run the platform.
 
-* [Docker](https://www.docker.com/)
+* [Docker](https://docs.docker.com/install/)
+* [Docker Compose](https://docs.docker.com/compose/install/)
 * [Node.js v10.18.1](https://nodejs.org/dist/v10.18.1/)
 
 ### Platform components
@@ -36,6 +37,16 @@ The API component connects the client app to the network and lives in
 the `api` directory.
 
 For more info, see the [API docs](./api/README.md).
+
+#### Client App
+
+Primary user interface (UI) for interacting with the network.
+Users can signup (create an organisation), join channels,
+and trade shares using their Web browser.
+
+It lives in the `application` directory.
+
+For more info, see the [application docs](./application/README.md).
 
 ### Bootstrap the network
 

@@ -1,0 +1,63 @@
+version: '3.7'
+
+networks:
+  network_divvy:
+    external: true
+
+services:
+  web.app.divvy.com:
+    image: php:7.3.6-apache
+    container_name: web.app.divvy.com
+    build:
+      context: ./php-apache
+    environment:
+      XDEBUG_CONFIG: remote_autostart=On remote_enable=On remote_host=host.docker.internal
+    ports:
+      - 80:80
+    volumes:
+      - ./server:/var/www/html:cached
+    networks:
+      network_divvy:
+        aliases:
+          - php-apache
+
+  db.app.divvy.com:
+    image: mariadb:10.4.6
+    container_name: db.app.divvy.com
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mariadb:/var/lib/mysql:delegated
+    environment:
+      TZ: Pacific/Auckland
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: app
+    networks:
+      network_divvy:
+        aliases:
+          - mariadb
+
+  mail.app.divvy.com:
+    image: schickling/mailcatcher
+    container_name: mail.app.divvy.com
+    ports:
+      - 1080:1080
+    networks:
+      network_divvy:
+        aliases:
+          - mailcatcher
+
+  cli.app.divvy.com:
+    image: alpine:3.10
+    container_name: cli.app.divvy.com
+    ports:
+      - 3000:3000
+    build:
+      context: ./dev
+    volumes:
+      - ./client:/var/app/client:cached
+      - ./server:/var/app/server:cached
+    networks:
+      network_divvy:
+        aliases:
+          - dev

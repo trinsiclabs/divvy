@@ -553,6 +553,12 @@ if [ "$MODE" == "create" ]; then
         exit 1
     fi
 
+    # Don't clobber the client app namespace.
+    if [ "$ORG" == "app" ]; then
+        echo "There is already an organisation called ${ORG}."
+        exit 1
+    fi
+
     askProceed
 
     CHANNEL='sys-channel'
