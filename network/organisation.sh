@@ -345,7 +345,7 @@ function addOrgToConsortium() {
     local CONF_DELTA_JSON="$CLI_OUTPUT_DIR/config-delta-$1.json"
     local PAYLOAD_BLOCK="$CLI_OUTPUT_DIR/payload-$1.pb"
     local PAYLOAD_JSON="$CLI_OUTPUT_DIR/payload-$1.json"
-    local CA_PATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/msp/tlscacerts/tlsca.divvy.com-cert.pem
+    local CA_PATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto-config/msp/tlscacerts/tlsca.divvy.com-cert.pem
 
     cliMkdirp $ORDERER_CLI $CLI_OUTPUT_DIR
 
