@@ -54,10 +54,10 @@ Query the ledger:
 
 ```
 $ docker exec api.divvy.com node ./lib/query.js \
-    -o org1 \
-    -u user1 \
-    -c org1-channel \
+    -o <org> \
+    -u <user> \
+    -c <org>-channel \
     -n share \
     -m queryShare \
-    -a '["org1","1"]'
+    -a '["<org>","1"]'
 ```
