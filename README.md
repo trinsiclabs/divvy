@@ -30,10 +30,12 @@ the `network` directory. This is the core platform component.
 Chaincode is used by network peers to query and update ledger state.
 It lives in the `chaincode` directory.
 
-#### API (not working yet)
+#### API
 
-The API component connects client apps to the network and lives in
+The API component connects the client app to the network and lives in
 the `api` directory.
+
+For more info, see the [API docs](./api/README.md).
 
 ### Bootstrap the network
 
@@ -47,6 +49,16 @@ $ ./bootstrap.sh
 ```
 
 You should now have the required docker images and Fabric binaries installed.
+
+### Build the API Docker image
+
+From the `api` directory
+
+```
+$ docker build -t trinsiclabs/divvy-api .
+```
+
+This builds and tags the API image so the container can be started.
 
 ### Prepare the chaincode
 
@@ -77,10 +89,10 @@ $ ./organisation.sh create --org org1 --pport 8051 --ccport 8052 --caport 8053
 $ ./organisation.sh create --org org2 --pport 9051 --ccport 9052 --caport 9053
 ```
 
-Join org1 to the org2 channel:
+Join org2 to the org1 channel:
 
 ```
-$ ./organisation.sh joinchannel --org org1 --channelowner org2
+$ ./organisation.sh joinchannel --org org2 --channelowner org1
 ```
 
 ### Make a trade

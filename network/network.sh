@@ -88,6 +88,7 @@ function networkUp() {
 
     # Bring up the core containers.
     docker-compose -f docker-compose.yaml up -d 2>&1
+    docker-compose -f ../api/docker-compose.yaml up -d 2>&1
 
     # Bring up the Org containers.
     docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') up -d 2>&1
@@ -125,6 +126,7 @@ function networkDown() {
     docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') down --volumes --remove-orphans
 
     # Remove core containers.
+    docker-compose -f ../api/docker-compose.yaml down --volumes --remove-orphans
     docker-compose -f ./docker-compose.yaml down --volumes --remove-orphans
 
     # Don't remove the generated artifacts -- note, the ledgers are always removed

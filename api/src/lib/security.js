@@ -27,16 +27,16 @@ require('yargs')
   .argv;
 
 /**
- * When we created the organisation, an admin user — literally called admin —
- * was created as the registrar for the certificate authority (CA).
+ * When we create organisations, an admin user — literally called admin —
+ * is created as the registrar for the orgs certificate authority (CA).
  * This function generates the private key, public key,
  * and X.509certificate for admin.
  *
  * This process uses a Certificate Signing Request (CSR) — the private and
- * public key are first generated locally and the public key is then sent
- * to the CA which returns an encoded certificate for use by the application.
- * These three credentials are then stored in the wallet, allowing us to act
- * as an administrator for the CA.
+ * public key are first generated locally and the public key is sent to
+ * the CA which returns an encoded certificate for the API to use.
+ * These three credentials are then stored in the orgs wallet,
+ * allowing the API to act as an admin for the orgs CA.
  *
  * @param {string} org
  */
@@ -74,7 +74,7 @@ async function enrollOrg(org) {
 
 /**
  * Similar to the enrollOrg function, this function uses a CSR to enroll a user
- * and store their credentials alongside those of admin in the wallet.
+ * and store their credentials alongside those of the admin in the wallet.
  *
  * @param {string} org
  * @param {string} user
