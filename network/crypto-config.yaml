@@ -1,5 +1,0 @@
-OrdererOrgs:
-  - Name: OrdererOrg
-    Domain: divvy.com
-    Specs:
-      - Hostname: orderer

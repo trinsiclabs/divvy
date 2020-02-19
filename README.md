@@ -31,8 +31,8 @@ the host as Docker containers.
 
 #### Network
 
-Hyperledger Fabric network with configuration and scripts living in
-the `network` directory. This is the core platform component.
+Hyperledger Fabric network, the core platform component.
+
 It has three core containers:
 
 * ca.divvy.com
@@ -46,14 +46,13 @@ added to the network includes three more containers:
 * peer.ORG_NAME.divvy.com
 * cli.ORG_NAME.divvy.com
 
-See the [network docs](./network/README.md) for more info.
+See the [network docs](https://github.com/flashbackzoo/divvy-network) for more info.
 
 #### Chaincode
 
 Chaincode is used by network peers to query and update ledger state.
-It lives in the `chaincode` directory.
 
-See the [chaincode docs](./chaincode/README.md) for more info.
+See the [chaincode docs](https://github.com/flashbackzoo/divvy-chaincode) for more info.
 
 #### Client App
 
@@ -61,9 +60,7 @@ Primary user interface (UI) for interacting with the network.
 Users can signup (create an organisation), join channels,
 and trade shares using the app.
 
-It lives in the `application` directory.
-
-See the [application docs](./application/README.md) for more info.
+See the [application docs](https://github.com/flashbackzoo/divvy-application) for more info.
 
 #### API
 

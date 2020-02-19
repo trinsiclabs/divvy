@@ -32,7 +32,6 @@ Vagrant.configure("2") do |config|
 
     config.vm.network "private_network", type: "dhcp"
 
-    config.vm.synced_folder "./application", "/home/vagrant/application"
     config.vm.synced_folder "./chaincode", "/home/vagrant/chaincode"
     config.vm.synced_folder "./network", "/home/vagrant/network"
 

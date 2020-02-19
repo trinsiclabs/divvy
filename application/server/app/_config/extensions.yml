@@ -1,7 +1,0 @@
-SilverStripe\Security\Member:
-  extensions:
-    - TrinsicLabs\App\Extensions\MemberExtension
-
-Silverstripe\SiteConfig\SiteConfig:
-  extensions:
-    - TrinsicLabs\App\Extensions\SiteConfigExtension
