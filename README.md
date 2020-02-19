@@ -67,10 +67,9 @@ See the [application docs](./application/README.md) for more info.
 
 #### API
 
-The API component connects the client app to the network and lives in
-the `api` directory.
+The API component connects the client app to the network.
 
-See the [API docs](./api/README.md) for ore info.
+See the [API docs](https://github.com/flashbackzoo/divvy-api) for ore info.
 
 ### Bootstrap the host
 
