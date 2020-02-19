@@ -10,76 +10,92 @@ up and running.
 
 ### Install the prerequisites
 
-You need these things installed to run the platform.
+You'll need these things installed to run the platform.
 
-* [Docker](https://docs.docker.com/install/)
-* [Docker Compose](https://docs.docker.com/compose/install/)
-* [Node.js v10.18.1](https://nodejs.org/dist/v10.18.1/)
+* [Vagrant](https://www.vagrantup.com/)
+* [VirtualBox](https://www.virtualbox.org/)
+
+You'll also need about 10gb of free space available.
 
 ### Platform components
 
 While things are downloading, here's a quick introduction to the
 various platform components.
 
+#### Host
+
+The host is responsible for running all services which make up the platform.
+It is a Vagrant virtual machine running Ubuntu 18.04 LTS with
+[Docker](https://www.docker.com/) installed. The following components run on
+the host as Docker containers.
+
 #### Network
 
 Hyperledger Fabric network with configuration and scripts living in
 the `network` directory. This is the core platform component.
+It has three core containers:
+
+* ca.divvy.com
+* orderer.divvy.com
+* cli.divvy.com
+
+The network is initially empty, it has no organisations. Each organisation
+added to the network includes three more containers:
+
+* ca.ORG_NAME.divvy.com
+* peer.ORG_NAME.divvy.com
+* cli.ORG_NAME.divvy.com
+
+See the [network docs](./network/README.md) for more info.
 
 #### Chaincode
 
 Chaincode is used by network peers to query and update ledger state.
 It lives in the `chaincode` directory.
 
-#### API
-
-The API component connects the client app to the network and lives in
-the `api` directory.
-
-For more info, see the [API docs](./api/README.md).
+See the [chaincode docs](./chaincode/README.md) for more info.
 
 #### Client App
 
 Primary user interface (UI) for interacting with the network.
 Users can signup (create an organisation), join channels,
-and trade shares using their Web browser.
+and trade shares using the app.
 
 It lives in the `application` directory.
 
-For more info, see the [application docs](./application/README.md).
+See the [application docs](./application/README.md) for more info.
 
-### Bootstrap the network
+#### API
+
+The API component connects the client app to the network and lives in
+the `api` directory.
+
+See the [API docs](./api/README.md) for ore info.
+
+### Bootstrap the host
 
 Once you have installed the prerequisites you're ready to
-bootstrap the network. This only needs to be done once.
-
-From the `network` directory:
+bootstrap the host virtual machine.
 
 ```
-$ ./bootstrap.sh
+$ vagrant up
 ```
 
-You should now have the required docker images and Fabric binaries installed.
+This will download the `ubuntu/bionic64` image (if you don't have it already),
+provision the box, pull the required Docker images, Fabric binaries,
+and a few other things. The provisioning script is in `Vagrantfile` if you want
+to see exactly what happens.
 
-### Build the API Docker image
+Once provisioning is complete (it will take a few minutes) you're ready to
+start using the network.
 
-From the `api` directory
-
-```
-$ docker build -t trinsiclabs/divvy-api .
-```
-
-This builds and tags the API image so the container can be started.
-
-### Prepare the chaincode
-
-From the `chaincode` directory:
+Login to the host:
 
 ```
-$ npm install
+$ vagrant ssh
 ```
 
-This installs the JavaScript dependencies required to run chaincode.
+**Note all CLI interactions with the network must be performed from the host**
 
 ### Bring the network up
 
@@ -111,7 +127,7 @@ $ ./organisation.sh joinchannel --org org2 --channelowner org1
 Log into the org1 cli container:
 
 ```
-docker exec -it cli.org1.divvy.com bash
+sudo docker exec -it cli.org1.divvy.com bash
 ```
 
 See the current height and hash of the org1 blockchain:
@@ -137,3 +153,19 @@ Verify the share has changed ownership:
 ```
 peer chaincode query -C org1-channel -n share -c '{"Args":["com.divvy.share:queryShare","org1","1"]}'
 ```
+
+## Host queue
+
+Containers run on the `network_divvy` Docker network. This allows containers to
+communicate with each other on any ports where services are running,
+by supplying `container_name` and a port number.
+
+An exception to this is where the application container `web.app.divvy.com`
+needs to tell the network a new user has signed up and to a new organisation
+needs to be created. This is done by executing the `network.sh` script,
+on the host.
+
+To execute the host script from inside `web.app.divvy.com` we mount a named
+pipe (FIFO) called `host_queue` (created during provisioning). The container
+writes commands to `host_queue`, the commands are read and executed by the
+host, via the `network/host-queue-processor.sh` script.

@@ -4,9 +4,9 @@ Primary user interface (UI) for interacting with the network.
 
 ## Getting started
 
-The "front-end" of the app uses [React](https://reactjs.org/) and
+The front-end of the app uses [React](https://reactjs.org/) and
 communicates with the [Silverstripe](https://www.silverstripe.org/)
-"back-end" via [GraphQL](https://graphql.org/).
+back-end via [GraphQL](https://graphql.org/).
 
 UI components are provided by [Material UI](https://material-ui.com/)
 
@@ -34,7 +34,7 @@ server
 ```
 
 These volumes map to the `client` and `server` directories in the application
-root and contain the "front-end" and "back-end" of the app respectively.
+root and contain the front-end and back-end of the app respectively.
 
 The CLI container has all the tools you need to build the app. Start by
 installing the PHP dependencies from the `server` directory:
@@ -61,7 +61,7 @@ Create a `server/.env` file with the following variables:
 
 ```
 SS_DATABASE_CLASS='MySQLPDODatabase'
-SS_DATABASE_SERVER='mariadb'
+SS_DATABASE_SERVER='db.app.divvy.com'
 SS_DATABASE_USERNAME='root'
 SS_DATABASE_NAME='app'
 SS_BASE_URL='http://localhost'

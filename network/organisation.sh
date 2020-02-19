@@ -117,7 +117,7 @@ function cliMkdirp() {
     echo "Creating directory $2 on $1..."
     echo
 
-    docker exec $1 mkdir -p $2
+    sudo docker exec $1 mkdir -p $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -129,7 +129,7 @@ function cliRmrf() {
     echo "Removing directory $2 on $1..."
     echo
 
-    docker exec $1 rm -rf $2
+    sudo docker exec $1 rm -rf $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -141,7 +141,7 @@ function cliFetchLatestChannelConfigBlock() {
     echo "Fetching latest config block for channel $2..."
     echo
 
-    docker exec $1 peer channel fetch config $3 --tls --cafile $4 -o $ORDERER_PEER -c $2
+    sudo docker exec $1 peer channel fetch config $3 --tls --cafile $4 -o $ORDERER_PEER -c $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -156,7 +156,7 @@ function cliDecodeConfigBlock() {
     local type="${4:-common.Block}"
     local treePath="${5:-.data.data[0].payload.data.config}"
 
-    docker exec -i $1 bash <<EOF
+    sudo docker exec -i $1 bash <<EOF
         configtxlator proto_decode --input "$2" --type "$type" | jq "$treePath" > "$3"
 EOF
 
@@ -172,7 +172,7 @@ function cliEncodeConfigJson() {
 
     local type="${4:-common.Config}"
 
-    docker exec $1 configtxlator proto_encode \
+    sudo docker exec $1 configtxlator proto_encode \
         --input $2 \
         --output $3 \
         --type $type
@@ -187,7 +187,7 @@ function cliGenerateUpdateBlock() {
     echo "Generating config update block for channel $2..."
     echo
 
-    docker exec $1 configtxlator compute_update \
+    sudo docker exec $1 configtxlator compute_update \
         --channel_id $2 \
         --original $3 \
         --updated $4 \
@@ -203,7 +203,7 @@ function cliAddConfigUpdateHeader() {
     echo "Adding header to config update for channel $2..."
     echo
 
-    docker exec -i \
+    sudo docker exec -i \
         -e channel=$2 \
         -e updatesFile=$3 \
         -e outFile=$4 \
@@ -219,7 +219,7 @@ function cliSubmitChannelUpdate() {
     echo "Submitting config update for channel $3..."
     echo
 
-    docker exec $1 peer channel update -f $2 -c $3 -o $ORDERER_PEER --tls --cafile $4
+    sudo docker exec $1 peer channel update -f $2 -c $3 -o $ORDERER_PEER --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -231,7 +231,7 @@ function cliFetchChannelGenesisBlock() {
     echo "Fetching genesis block for channel $2..."
     echo
 
-    docker exec $1 peer channel fetch 0 $3 -o $ORDERER_PEER -c $2 --tls --cafile $4
+    sudo docker exec $1 peer channel fetch 0 $3 -o $ORDERER_PEER -c $2 --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -243,7 +243,7 @@ function cliJoinPeerToChannel() {
     echo "Joining $ORG_PEER to channel $2..."
     echo
 
-    docker exec $1 peer channel join -b $3 --tls --cafile $4
+    sudo docker exec $1 peer channel join -b $3 --tls --cafile $4
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -251,7 +251,7 @@ function cliJoinPeerToChannel() {
 }
 
 function cliPeerNodeStatus() {
-    docker exec $1 peer node status
+    sudo docker exec $1 peer node status
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -259,7 +259,7 @@ function cliPeerNodeStatus() {
 }
 
 function cliChannelInfo() {
-    docker exec $1 peer channel getinfo -c $2
+    sudo docker exec $1 peer channel getinfo -c $2
 
     if [ $? -ne 0 ]; then
         exit 1
@@ -268,7 +268,7 @@ function cliChannelInfo() {
 
 function listPeerChannels() {
     echo
-    docker exec $1 peer channel list
+    sudo docker exec $1 peer channel list
     echo
 
     if [ $? -ne 0 ]; then
@@ -283,7 +283,7 @@ function cliInstallChaincode() {
 
     local path="${4:-chaincode}"
 
-    docker exec $1 peer chaincode install \
+    sudo docker exec $1 peer chaincode install \
         -n $2 \
         -v $3 \
         -p $path \
@@ -299,7 +299,7 @@ function cliInstantiateChaincode() {
     echo "Instanciating chaincode $2 v$3 on channel $4..."
     echo
 
-    docker exec $1 peer chaincode instantiate \
+    sudo docker exec $1 peer chaincode instantiate \
         -o $ORDERER_PEER \
         -n $2 \
         -v $3 \
@@ -323,7 +323,7 @@ function cliInvokeChaincode() {
     echo "Inkoving initial $2 ledger transaction on $3 channel..."
     echo
 
-    docker exec $1 peer chaincode invoke \
+    sudo docker exec $1 peer chaincode invoke \
         -o $ORDERER_PEER \
         -n $2 \
         -C $3 \
@@ -355,7 +355,7 @@ function addOrgToConsortium() {
     cliDecodeConfigBlock $ORDERER_CLI $CONF_BLOCK $CONF_JSON
 
     # Add the Org definition to config.
-    docker exec -i $ORDERER_CLI bash <<EOF
+    sudo docker exec -i $ORDERER_CLI bash <<EOF
         jq -s '.[0] * {"channel_group":{"groups":{"Consortiums":{"groups": {"Default": {"groups": {"$MSP_NAME":.[1]}, "mod_policy": "/Channel/Orderer/Admins", "policies": {}, "values": {"ChannelCreationPolicy": {"mod_policy": "/Channel/Orderer/Admins","value": {"type": 3,"value": {"rule": "ANY","sub_policy": "Admins"}},"version": "0"}},"version": "0"}}}}}}' $CONF_JSON $ORG_DEF > $CONF_MOD_JSON
 EOF
 
@@ -412,7 +412,7 @@ function createOrgChannel() {
     echo
     echo "Creating channel..."
 
-    docker exec \
+    sudo docker exec \
         -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
         $ORG_PEER peer channel create \
         -o $ORDERER_PEER \
@@ -428,7 +428,7 @@ function createOrgChannel() {
     echo
     echo "Adding peer to channel..."
 
-    docker exec \
+    sudo docker exec \
         -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
         $ORG_PEER peer channel join \
         -b "$orgChannelId.block"
@@ -443,7 +443,7 @@ function createOrgChannel() {
     echo
     echo "Adding anchor peer config to channel..."
 
-    docker exec \
+    sudo docker exec \
         -e "CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp/users/Admin@$2.divvy.com/msp" \
         $ORG_PEER peer channel update \
         -o $ORDERER_PEER \
@@ -559,8 +559,6 @@ if [ "$MODE" == "create" ]; then
         exit 1
     fi
 
-    askProceed
-
     CHANNEL='sys-channel'
 
     mkdir -p $CONFIG_DIR
@@ -589,16 +587,16 @@ if [ "$MODE" == "create" ]; then
 
     echo "Starting Organisation containers..."
     echo
-    docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
+    sudo docker-compose -f "$CONFIG_DIR/docker-compose.yaml" up -d 2>&1
 
     sleep 10
 
     echo
-    docker ps -a --filter name=".$ORG.divvy.com"
+    sudo docker ps -a --filter name=".$ORG.divvy.com"
     echo
 
     echo "Generating wallet..."
-    docker exec $API_CONTAINER node ./lib/security.js enrolladmin ${ORG}
+    sudo docker exec $API_CONTAINER node ./lib/security.js enrolladmin ${ORG}
     echo
 
     if [ $? -ne 0 ]; then
@@ -620,14 +618,12 @@ if [ "$MODE" == "create" ]; then
 
     echo "Done"
 elif [ "$MODE" == "remove" ]; then
-    askProceed
-
     # TODO: Remove from consortium
     # TODO: Remove org from all channels
     # TODO: Remove all other orgs from org channel
 
     echo "Stopping $ORG containers..."
-    docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
+    sudo docker-compose -f "$CONFIG_DIR/docker-compose.yaml" down --volumes
     echo
 
     echo "Removing files..."
@@ -651,8 +647,6 @@ elif [ "$MODE" == "joinchannel" ]; then
         exit 1
     fi
 
-    askProceed
-
     configBlock="$CLI_OUTPUT_DIR/config-$CHANNEL.pb"
     configBlockUpdated="$CLI_OUTPUT_DIR/config-$CHANNEL-updated.pb"
     configJson="$CLI_OUTPUT_DIR/config-$CHANNEL.json"
@@ -666,14 +660,14 @@ elif [ "$MODE" == "joinchannel" ]; then
     cliMkdirp $CHANNEL_OWNER_CLI $CLI_OUTPUT_DIR
 
     generateOrgDefinition $CONFIG_DIR $MSP_NAME
-    docker cp "$CONFIG_DIR/$ORG.json" $CHANNEL_OWNER_CLI:"/opt/gopath/src/github.com/hyperledger/fabric/peer/$orgDefinition"
+    sudo docker cp "$CONFIG_DIR/$ORG.json" $CHANNEL_OWNER_CLI:"/opt/gopath/src/github.com/hyperledger/fabric/peer/$orgDefinition"
 
     cliFetchLatestChannelConfigBlock $CHANNEL_OWNER_CLI $CHANNEL $configBlock $caPath
 
     cliDecodeConfigBlock $CHANNEL_OWNER_CLI $configBlock $configJson
 
     # Add Org to config.
-    docker exec -i $CHANNEL_OWNER_CLI bash <<EOF
+    sudo docker exec -i $CHANNEL_OWNER_CLI bash <<EOF
         jq -s '.[0] * {"channel_group":{"groups":{"Application":{"groups": {"$MSP_NAME":.[1]}}}}}' $configJson $orgDefinition > $configJsonUpdated
 EOF
 

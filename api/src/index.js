@@ -5,7 +5,15 @@ const Hapi = require('@hapi/hapi');
 const init = async () => {
   const server = Hapi.server({
       port: 3000,
-      host: 'localhost'
+      host: '0.0.0.0'
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/api/v1/organisation/create',
+    handler: (request, h) => {
+      return 'Hello World!';
+    },
   });
 
   await server.start();

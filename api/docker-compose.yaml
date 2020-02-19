@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 
 networks:
   network_divvy:
@@ -10,7 +10,7 @@ services:
     container_name: api.divvy.com
     user: node
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
     ports:
       - 3000:3000
     volumes:

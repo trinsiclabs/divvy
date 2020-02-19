@@ -8,7 +8,7 @@ module.exports = {
 
   output: {
     path: outputPath,
-    publicPath: isDev ? 'http://localhost:3000/' : '/app/',
+    publicPath: isDev ? 'http://localhost:3001/' : '/app/',
     filename: '[name].js',
     chunkFilename: '[chunkhash].js',
   },
@@ -19,7 +19,7 @@ module.exports = {
     hot: true,
     contentBase: outputPath,
     host: '0.0.0.0',
-    port: 3000,
+    port: 3001,
     disableHostCheck: true,
     headers: {
       "Access-Control-Allow-Origin": "*",

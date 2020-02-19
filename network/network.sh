@@ -21,7 +21,7 @@ function checkPrereqs() {
     # Note, we check configtxlator externally because it does not require a config file, and peer in the
     # docker image because of FAB-8551 that makes configtxlator return 'development version' in docker
     LOCAL_VERSION=$(configtxlator version | sed -ne 's/ Version: //p')
-    DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:1.4.4 peer version | sed -ne 's/ Version: //p' | head -1)
+    DOCKER_IMAGE_VERSION=$(sudo docker run --rm hyperledger/fabric-tools:1.4.4 peer version | sed -ne 's/ Version: //p' | head -1)
 
     echo "LOCAL_VERSION=$LOCAL_VERSION"
     echo "DOCKER_IMAGE_VERSION=$DOCKER_IMAGE_VERSION"
@@ -87,13 +87,14 @@ function networkUp() {
     fi
 
     # Bring up the core containers.
-    docker-compose -f docker-compose.yaml up -d 2>&1
-    docker-compose -f ../api/docker-compose.yaml up -d 2>&1
+    sudo docker-compose -f docker-compose.yaml up -d 2>&1
+    sudo docker-compose -f ../api/docker-compose.yaml up -d 2>&1
+    sudo docker-compose -f ../application/docker-compose.yaml up -d 2>&1
 
     # Bring up the Org containers.
-    docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') up -d 2>&1
+    sudo docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') up -d 2>&1
 
-    docker ps -a
+    sudo docker ps -a
 
     if [ $? -ne 0 ]; then
         echo "ERROR !!!! Unable to start network"
@@ -102,36 +103,37 @@ function networkUp() {
 }
 
 function clearContainers() {
-    CONTAINER_IDS=$(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
+    CONTAINER_IDS=$(sudo docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
 
     if [ -z "$CONTAINER_IDS" -o "$CONTAINER_IDS" == " " ]; then
         echo "---- No containers available for deletion ----"
     else
-        docker rm -f $CONTAINER_IDS
+        sudo docker rm -f $CONTAINER_IDS
     fi
 }
 
 function removeUnwantedImages() {
-    DOCKER_IMAGE_IDS=$(docker images | awk '($1 ~ /dev-peer.*/) {print $3}')
+    DOCKER_IMAGE_IDS=$(sudo docker images | awk '($1 ~ /dev-peer.*/) {print $3}')
 
     if [ -z "$DOCKER_IMAGE_IDS" -o "$DOCKER_IMAGE_IDS" == " " ]; then
         echo "---- No images available for deletion ----"
     else
-        docker rmi -f $DOCKER_IMAGE_IDS
+        sudo docker rmi -f $DOCKER_IMAGE_IDS
     fi
 }
 
 function networkDown() {
     # Remove Org containers.
-    docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') down --volumes --remove-orphans
+    sudo docker-compose $(find ./org-config/ -name 'docker-compose.yaml' | sed 's/.*/-f &/' | tr '\n\r' ' ') down --volumes --remove-orphans
 
     # Remove core containers.
-    docker-compose -f ../api/docker-compose.yaml down --volumes --remove-orphans
-    docker-compose -f ./docker-compose.yaml down --volumes --remove-orphans
+    sudo docker-compose -f ../api/docker-compose.yaml down --volumes --remove-orphans
+    sudo docker-compose -f ../application/docker-compose.yaml down --volumes --remove-orphans
+    sudo docker-compose -f ./docker-compose.yaml down --volumes --remove-orphans
 
     # Don't remove the generated artifacts -- note, the ledgers are always removed
     if [ "$MODE" != "restart" ]; then
-        docker run -v $PWD:/tmp/divvy --rm hyperledger/fabric-tools:1.4.4 rm -Rf /tmp/divvy/ledgers-backup
+        sudo docker run -v $PWD:/tmp/divvy --rm hyperledger/fabric-tools:1.4.4 rm -Rf /tmp/divvy/ledgers-backup
 
         clearContainers
 
@@ -169,8 +171,6 @@ while getopts "h" opt; do
             ;;
     esac
 done
-
-askProceed
 
 if [ "${MODE}" == "up" ]; then
     networkUp

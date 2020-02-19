@@ -11,7 +11,7 @@ SilverStripe\Core\Injector\Injector:
   Swift_Transport:
     class: Swift_SmtpTransport
     properties:
-      Host: mailcatcher
+      Host: mail.app.divvy.com
       Port: 1025
       Encryption: false
 ---
