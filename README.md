@@ -40,27 +40,30 @@ It has three core containers:
 * cli.divvy.com
 
 The network is initially empty, it has no organisations. Each organisation
-added to the network includes three more containers:
+added to the network creates three more containers:
 
 * ca.ORG_NAME.divvy.com
 * peer.ORG_NAME.divvy.com
 * cli.ORG_NAME.divvy.com
 
-See the [network docs](https://github.com/flashbackzoo/divvy-network) for more info.
+See the [network docs](https://github.com/flashbackzoo/divvy-network)
+for more info.
 
 #### Chaincode
 
 Chaincode is used by network peers to query and update ledger state.
 
-See the [chaincode docs](https://github.com/flashbackzoo/divvy-chaincode) for more info.
+See the [chaincode docs](https://github.com/flashbackzoo/divvy-chaincode)
+for more info.
 
-#### Client App
+#### Application
 
 Primary user interface (UI) for interacting with the network.
 Users can signup (create an organisation), join channels,
 and trade shares using the app.
 
-See the [application docs](https://github.com/flashbackzoo/divvy-application) for more info.
+See the [application docs](https://github.com/flashbackzoo/divvy-application)
+for more info.
 
 #### API
 
@@ -68,30 +71,24 @@ The API component connects the client app to the network.
 
 See the [API docs](https://github.com/flashbackzoo/divvy-api) for ore info.
 
-### Bootstrap the host
+### Stand up the host
 
 Once you have installed the prerequisites you're ready to
-bootstrap the host virtual machine.
+stand up and provision the host VM.
 
 ```
 $ vagrant up
 ```
 
-This will download the `ubuntu/bionic64` image (if you don't have it already),
-provision the box, pull the required Docker images, Fabric binaries,
-and a few other things. The provisioning script is in `Vagrantfile` if you want
-to see exactly what happens.
+This will download the `ubuntu/bionic64` image (if you don't have it already)
+and provision the box with various tools. The provisioning script is in
+`Vagrantfile` if you want to see exactly what happens.
 
-Once provisioning is complete (it will take a few minutes) you're ready to
-start using the network.
-
-Login to the host:
+Once that finishes, login to the host:
 
 ```
 $ vagrant ssh
 ```
-
-**Note all CLI interactions with the network must be performed from the host**
 
 ### Bring the network up
 
@@ -165,3 +162,35 @@ To execute the host script from inside `web.app.divvy.com` we mount a named
 pipe (FIFO) called `host_queue` (created during provisioning). The container
 writes commands to `host_queue`, the commands are read and executed by the
 host, via the `network/host-queue-processor.sh` script.
+
+## Development
+
+During provisioning each platform component is cloned onto the host VM. To make
+changes to components you to connect your IDE to the host. Here's how to do it
+using [Visual Studio Code](https://code.visualstudio.com/).
+
+Install the
+[Remote SSH plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh)
+
+Print and copy the Vagrant SSH config:
+
+```
+$ vagrant ssh-config
+```
+
+Configure the Remote SSH plugin:
+
+1. Open Visual Studio Code
+2. Open the plugin (bottom left corner),
+3. Select 'Open configuration file...'
+4. Select 'YOUR_HOME_DIR/.ssh/config'
+5. Paste the Vagrant SSH config
+6. Close the file
+
+You should now be able to edit files inside the host VM.
+
+1. Open the plugin
+2. Select 'Connect to host...'
+3. Select 'divvy'
+
+Another window should open with your new remote connection.
