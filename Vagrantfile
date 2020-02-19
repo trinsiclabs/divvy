@@ -14,6 +14,7 @@ $script = <<-SCRIPT
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     nvm install v12.16.0 2>/dev/null
     nvm install v10.19.0 2>/dev/null
+    nvm alias default v10.19.0
 
     ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
@@ -36,6 +37,10 @@ $script = <<-SCRIPT
     cd /home/vagrant/network
     ./bootstrap.sh
     rm -rf ./config
+
+    if [ ! -p /home/vagrant/host_queue ]; then
+        mkfifo -m 0600 /home/vagrant/host_queue
+    fi
 
     cd /home/vagrant/api
     sudo docker build -t trinsiclabs/divvy-api .
