@@ -1,1 +1,0 @@
-# Divvy chaincode
