@@ -1,6 +1,7 @@
-$script = <<-SCRIPT
+$script = <<-SHELL
     sudo apt-get update
     sudo apt-get -y install \
+        build-essential \
         curl \
         docker.io \
         docker-compose \
@@ -12,9 +13,9 @@ $script = <<-SCRIPT
     wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.2/install.sh | bash
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    nvm install v12.16.0 2>/dev/null
     nvm install v10.19.0 2>/dev/null
-    nvm alias default v10.19.0
+    nvm install v12.16.0 2>/dev/null
+    nvm alias default v12.16.0
 
     ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
@@ -38,22 +39,25 @@ $script = <<-SCRIPT
     ./bootstrap.sh
     rm -rf ./config
 
-    if [ ! -p /home/vagrant/host_queue ]; then
-        mkfifo -m 0600 /home/vagrant/host_queue
-    fi
-
-    cd /home/vagrant/api
-    sudo docker build -t trinsiclabs/divvy-api .
-
     cd /home/vagrant/api/src
+    nvm use
     npm install --silent
 
     cd /home/vagrant/application/client
+    nvm use
     npm install --silent
 
     cd /home/vagrant/chaincode
+    nvm use
     npm install --silent
-SCRIPT
+
+    nvm use default
+
+    # Create a named pipe so containers can execute commands on the host.
+    if [ ! -p /home/vagrant/host_queue ]; then
+        mkfifo -m 0600 /home/vagrant/host_queue
+    fi
+SHELL
 
 Vagrant.configure("2") do |config|
     config.vm.box = "ubuntu/bionic64"
@@ -68,6 +72,39 @@ Vagrant.configure("2") do |config|
     config.ssh.forward_agent = true
 
     config.vm.network "private_network", type: "dhcp"
+
+    # Provision SSH key to enable pushing code to GitHub.
+    config.vm.provision "shell" do |s|
+        ssh_prv_key = ""
+        ssh_pub_key = ""
+
+        if File.file?("#{Dir.home}/.ssh/id_rsa")
+            ssh_prv_key = File.read("#{Dir.home}/.ssh/id_rsa")
+            ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
+        else
+            puts "No SSH key found. You will need to remedy this before pushing to the repository."
+        end
+
+        s.inline = <<-SHELL
+            if grep -sq "#{ssh_pub_key}" /home/vagrant/.ssh/authorized_keys; then
+                echo "SSH keys already provisioned."
+                exit 0;
+            fi
+
+            echo "SSH key provisioning..."
+            mkdir -p /home/vagrant/.ssh/
+            touch /home/vagrant/.ssh/authorized_keys
+            echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
+            echo #{ssh_pub_key} > /home/vagrant/.ssh/id_rsa.pub
+            chmod 644 /home/vagrant/.ssh/id_rsa.pub
+            echo "#{ssh_prv_key}" > /home/vagrant/.ssh/id_rsa
+            chmod 600 /home/vagrant/.ssh/id_rsa
+            chown -R vagrant:vagrant /home/vagrant
+            exit 0
+        SHELL
+    end
+
+    config.vm.provision "file", source: "~/.gitconfig", destination: ".gitconfig"
 
     config.vm.provision "shell", privileged: false, inline: $script
 end
