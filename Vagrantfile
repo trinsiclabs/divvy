@@ -35,9 +35,19 @@ $script = <<-SHELL
         git clone git@github.com:flashbackzoo/divvy-network.git /home/vagrant/network
     fi
 
+    # Pull the Fabric images and binaries.
     cd /home/vagrant/network
     ./bootstrap.sh
     rm -rf ./config
+
+    # Pull the application images.
+    sudo docker pull php:7.3.6-apache
+    sudo docker pull mysql:5.7.29
+    sudo docker pull schickling/mailcatcher
+    sudo docker pull alpine:3.10
+
+    # Pull the API images
+    sudo docker pull node:12.16.0
 
     cd /home/vagrant/api/src
     nvm use
