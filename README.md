@@ -90,85 +90,33 @@ Once that finishes, login to the host:
 $ vagrant ssh
 ```
 
-### Bring the network up
+### Start the network component
 
-From the `network` directory:
+From the host VM navigate to the `network` directory and bring up the network:
 
 ```
+$ cd /home/vagrant/network
 $ ./network.sh up
 ```
 
-This brings up a skeleton network consisting of an order and CA.
-Logging information is streamed to this window, so open a new terminal window,
-and keep this one open as well so you can see the logs.
+This brings up the base network consisting of a solo order, CA, and CLI
+container. Logging information is streamed to this window, so keep it
+open, and use a new window for the next steps.
 
-### Populate the network
+### Start the API component
 
-In your new terminal window add a couple of organisations to the network.
-This is done from the `web.app.divvy.com` container to simulate a request
-from the application.
+See the *Getting Started* section of the
+[API docs](https://github.com/flashbackzoo/divvy-api)
+for steps on bringing up the API component.
 
-```
-$ sudo docker exec -it web.app.divvy.com bash
-```
+### Start the application component
 
-Create the first organisation:
+See the *Getting Started* section of the
+[application docs](https://github.com/flashbackzoo/divvy-application)
+for steps on bringing up the client application.
 
-```
-$ echo "./organisation.sh create --org org1 --pport 8051 --ccport 8052 --caport 8053" > host_queue
-```
-
-Create the second organisation:
-
-```
-$ echo "./organisation.sh create --org org2 --pport 9051 --ccport 9052 --caport 9053" > host_queue
-```
-
-### Join a channel
-
-While still in the application container, join org2 to the org1 channel:
-
-```
-$ echo "./organisation.sh joinchannel --org org2 --channelowner org1" > host_queue
-```
-
-Now exit the application container:
-
-```
-$ exit
-```
-
-### Make a trade
-
-Log into the org1 cli container:
-
-```
-$ sudo docker exec -it cli.org1.divvy.com bash
-```
-
-See the current height and hash of the org1 blockchain:
-
-```
-$ peer channel getinfo -c org1-channel
-```
-
-Transfer ownership of a share from org1 to org2:
-
-```
-$ peer chaincode invoke -C org1-channel -n share -c '{"Args":["com.divvy.share:changeShareOwner","org1","1","org1","org2"]}' --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/orderer/msp/tlscacerts/tlsca.divvy.com-cert.pem
-```
-
-See the new height and hash of the org1 blockchain:
-
-```
-$ peer channel getinfo -c org1-channel
-```
-
-Verify the share has changed ownership:
-
-```
-$ peer chaincode query -C org1-channel -n share -c '{"Args":["com.divvy.share:queryShare","org1","1"]}'
-```
+Once have the network, API, and application components running you're ready to
+start using the platform at `http://divvy.local`
 
 ## Host queue
 
@@ -249,3 +197,31 @@ error: gpg failed to sign the data
 
 Support for signing commits is currently not implemented. You need to edit
 `.gitconfig` on the host VM and set the flag to `false`.
+
+## TODO
+
+The next large bit of work is getting the platform ready for deployment.
+Here are some of the things (there will be lots more along the way):
+
+### Use some sort of container orchestration
+
+The Fabric network currently runs a single Docker host
+and standalone containers. This is fine for demo purposes but isn't suitable
+for production because it isn't scalable or fault tolerant.
+
+An example of a scalability issue is the current limitation of 99 users due
+to port allocation on the host. Organisation nodes (peers and CAs) bind to
+ports on the host which must be unique.
+
+An example of a fault tolerance issue is if a node goes down it has to
+be manually restarted.
+
+### Hosting and support
+
+Where are we going to host the platform? how much will it cost? how will it be
+supported? e.g. security patches and monitoring.
+
+### Deployment pipeline
+
+How are changes deployed? what tests do we run? what is the
+Fabric upgrade path?
