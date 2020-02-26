@@ -40,11 +40,14 @@ $script = <<-SHELL
     ./bootstrap.sh
     rm -rf ./config
 
-    # Pull the application images.
+    # Pull and build the application images.
     sudo docker pull php:7.3.6-apache
     sudo docker pull mysql:5.7.29
     sudo docker pull schickling/mailcatcher
     sudo docker pull alpine:3.10
+    cd /home/vagrant/application
+    sudo docker-compose build
+    cd /home/vagrant
 
     # Pull the API images
     sudo docker pull node:12.16.0
