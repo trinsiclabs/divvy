@@ -16,7 +16,6 @@ $script = <<-SHELL
     sudo add-apt-repository ppa:ondrej/php
     sudo apt-get update
     sudo apt-get -y install \
-        php7.3 \
         php7.3-cli \
         php7.3-curl \
         php7.3-intl \
@@ -98,7 +97,7 @@ Vagrant.configure("2") do |config|
     config.vm.define "divvy"
 
     config.vm.provider "virtualbox" do |v|
-        v.memory = 2048
+        v.memory = 4096
         v.cpus = 2
     end
 
