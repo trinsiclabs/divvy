@@ -3,6 +3,8 @@
 Micro-equity platform built on
 [Hyperledger Fabric](https://www.hyperledger.org/projects/fabric)
 
+**This is a proof-of-concept and NOT production ready**
+
 ## Getting started
 
 There are a few things to cover, so allow yourself an hour to get
