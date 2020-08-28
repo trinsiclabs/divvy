@@ -73,22 +73,41 @@ See the [API docs](https://github.com/flashbackzoo/divvy-api) for ore info.
 
 ### Stand up the host
 
-Once you have installed the prerequisites you're ready to
-stand up and provision the host VM.
+Once you have installed the prerequisites, clone the repo:
 
 ```
+$ git clone git@github.com:flashbackzoo/divvy.git
+```
+
+Stand up and provision the host VM:
+
+```
+$ cd divvy
 $ vagrant up
 ```
 
-This will download the `ubuntu/bionic64` image (if you don't have it already)
-and provision the box with various tools. The provisioning script is in
-`Vagrantfile` if you want to see exactly what happens.
+This will download the `ubuntu/bionic64` image and provision the box with
+various tools. The provisioning script is in `Vagrantfile` if you want to see
+exactly what happens.
 
 Once that finishes, login to the host:
 
 ```
 $ vagrant ssh
 ```
+
+Verify the platform components have been installed:
+
+```
+$ ls
+```
+
+You should see these directories:
+
+* api
+* application
+* chaincode
+* network
 
 ### Start the network component
 
@@ -197,31 +216,3 @@ error: gpg failed to sign the data
 
 Support for signing commits is currently not implemented. You need to edit
 `.gitconfig` on the host VM and set the flag to `false`.
-
-## TODO
-
-The next large bit of work is getting the platform ready for deployment.
-Here are some of the things (there will be lots more along the way):
-
-### Use some sort of container orchestration
-
-The Fabric network currently runs a single Docker host
-and standalone containers. This is fine for demo purposes but isn't suitable
-for production because it isn't scalable or fault tolerant.
-
-An example of a scalability issue is the current limitation of 99 users due
-to port allocation on the host. Organisation nodes (peers and CAs) bind to
-ports on the host which must be unique.
-
-An example of a fault tolerance issue is if a node goes down it has to
-be manually restarted.
-
-### Hosting and support
-
-Where are we going to host the platform? how much will it cost? how will it be
-supported? e.g. security patches and monitoring.
-
-### Deployment pipeline
-
-How are changes deployed? what tests do we run? what is the
-Fabric upgrade path?
