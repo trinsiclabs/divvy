@@ -39,19 +39,19 @@ $script = <<-SHELL
     ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
     if [ ! -d 'application' ]; then
-        git clone git@github.com:flashbackzoo/divvy-application.git /home/vagrant/application
+        git clone git@github.com:trinsiclabs/divvy-application.git /home/vagrant/application
     fi
 
     if [ ! -d 'api' ]; then
-        git clone git@github.com:flashbackzoo/divvy-api.git /home/vagrant/api
+        git clone git@github.com:trinsiclabs/divvy-api.git /home/vagrant/api
     fi
 
     if [ ! -d 'chaincode' ]; then
-        git clone git@github.com:flashbackzoo/divvy-chaincode.git /home/vagrant/chaincode
+        git clone git@github.com:trinsiclabs/divvy-chaincode.git /home/vagrant/chaincode
     fi
 
     if [ ! -d 'network' ]; then
-        git clone git@github.com:flashbackzoo/divvy-network.git /home/vagrant/network
+        git clone git@github.com:trinsiclabs/divvy-network.git /home/vagrant/network
     fi
 
     # Pull the Fabric images and binaries.

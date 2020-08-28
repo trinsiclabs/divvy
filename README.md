@@ -46,14 +46,14 @@ added to the network creates three more containers:
 * peer.ORG_NAME.divvy.com
 * cli.ORG_NAME.divvy.com
 
-See the [network docs](https://github.com/flashbackzoo/divvy-network)
+See the [network docs](https://github.com/trinsiclabs/divvy-network)
 for more info.
 
 #### Chaincode
 
 Chaincode is used by network peers to query and update ledger state.
 
-See the [chaincode docs](https://github.com/flashbackzoo/divvy-chaincode)
+See the [chaincode docs](https://github.com/trinsiclabs/divvy-chaincode)
 for more info.
 
 #### Application
@@ -62,21 +62,21 @@ Primary user interface (UI) for interacting with the network.
 Users can signup (create an organisation), join channels,
 and trade shares using the app.
 
-See the [application docs](https://github.com/flashbackzoo/divvy-application)
+See the [application docs](https://github.com/trinsiclabs/divvy-application)
 for more info.
 
 #### API
 
 The API component connects the client app to the network.
 
-See the [API docs](https://github.com/flashbackzoo/divvy-api) for ore info.
+See the [API docs](https://github.com/trinsiclabs/divvy-api) for ore info.
 
 ### Stand up the host
 
 Once you have installed the prerequisites, clone the repo:
 
 ```
-$ git clone git@github.com:flashbackzoo/divvy.git
+$ git clone git@github.com:trinsiclabs/divvy.git
 ```
 
 Stand up and provision the host VM:
@@ -125,13 +125,13 @@ open, and use a new window for the next steps.
 ### Start the API component
 
 See the *Getting Started* section of the
-[API docs](https://github.com/flashbackzoo/divvy-api)
+[API docs](https://github.com/trinsiclabs/divvy-api)
 for steps on bringing up the API component.
 
 ### Start the application component
 
 See the *Getting Started* section of the
-[application docs](https://github.com/flashbackzoo/divvy-application)
+[application docs](https://github.com/trinsiclabs/divvy-application)
 for steps on bringing up the client application.
 
 Once have the network, API, and application components running you're ready to
